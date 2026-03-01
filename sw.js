@@ -1,4 +1,4 @@
-const CACHE = 'zeitwerk-v27';
+const CACHE = 'zeitwerk-v28';
 const ASSETS = ['./'];
 
 self.addEventListener('install', event => {

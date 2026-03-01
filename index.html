@@ -9,6 +9,7 @@
 <title>BLITZ – Zeiterfassung</title>
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root {
     --bg: #0f0e0b;
@@ -1161,7 +1162,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v27</div>
+<div class="version-badge">v28</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -1175,6 +1176,7 @@
     <button class="tab" onclick="showPage('eintraege')">📋 Einträge</button>
     <button class="tab" onclick="showPage('uebersicht')">📅 Übersicht</button>
     <button class="tab" onclick="showPage('mehr')">··· Mehr</button>
+    <button class="tab" id="teamTab" onclick="showPage('team')" style="display:none">👥 Team</button>
   </div>
 
   <!-- Mobile Bottom Navigation -->
@@ -1190,6 +1192,9 @@
     </button>
     <button class="bottom-nav-item" id="bnav-mehr" onclick="showPage('mehr')">
       <span class="nav-icon">···</span><span>Mehr</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-team" onclick="showPage('team')" style="display:none">
+      <span class="nav-icon">👥</span><span>Team</span>
     </button>
   </nav>
 
@@ -1644,74 +1649,68 @@
     </div>
   </div>
   <div id="page-sync" class="page">
-
-    <!-- Status Bar -->
     <div id="syncStatusBar" class="sync-status-bar sync-idle">
       <span id="syncStatusIcon">○</span>
-      <span id="syncStatusText">Nicht verbunden</span>
+      <span id="syncStatusText">Nicht angemeldet</span>
       <span id="syncLastSync" style="margin-left:auto;font-size:0.65rem;color:var(--muted)"></span>
     </div>
 
-    <!-- Setup: no token yet -->
-    <div id="syncSetup" class="panel panel-accent">
-      <div class="panel-title">GitHub Gist · Einrichtung</div>
-
-      <div class="sync-steps">
-        <div class="sync-step">
-          <div class="sync-step-num">1</div>
-          <div class="sync-step-body">
-            <div class="sync-step-title">GitHub-Account erstellen oder einloggen</div>
-            <div class="sync-step-desc">Falls noch kein Account vorhanden: <a href="https://github.com/signup" target="_blank" class="sync-link">github.com/signup</a> — kostenlos, dauert 1 Minute.</div>
-          </div>
+    <!-- Step 1: Supabase not configured yet -->
+    <div id="syncSetupSupabase" class="panel panel-accent" style="display:none">
+      <div class="panel-title">⚙️ Supabase einrichten</div>
+      <div class="sync-step-desc" style="margin-bottom:1rem">Einmalig: Trage hier die Zugangsdaten deines Supabase-Projekts ein. Diese werden nur lokal gespeichert.</div>
+      <div style="display:flex;flex-direction:column;gap:0.6rem">
+        <input type="text" id="supabaseUrlInput" placeholder="https://xxxx.supabase.co" style="width:100%" autocomplete="off">
+        <input type="text" id="supabaseKeyInput" placeholder="Anon/Public Key (eyJ...)" style="width:100%" autocomplete="off">
+        <button class="btn-primary" onclick="saveSupabaseConfig()">Speichern & weiter</button>
+      </div>
+      <div id="supabaseConfigError" style="color:var(--red);font-size:0.72rem;margin-top:0.5rem;display:none"></div>
+      <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
+        <div style="font-size:0.72rem;color:var(--muted);line-height:1.8">
+          <strong style="color:var(--text)">Setup-Anleitung:</strong><br>
+          1. Supabase-Projekt erstellen: <a href="https://supabase.com" target="_blank" class="sync-link">supabase.com</a> (kostenlos)<br>
+          2. Im SQL-Editor das Setup-Script ausführen (Schaltfläche unten)<br>
+          3. Project URL &amp; anon key hier eintragen (unter Project Settings → API)<br>
+          4. Für jeden Mitarbeiter im Auth-Dashboard einen Benutzer anlegen:<br>
+          &nbsp;&nbsp;· Email: <code>code@blitz.internal</code> (z.B. lukas@blitz.internal)<br>
+          &nbsp;&nbsp;· Passwort: der Code selbst (z.B. lukas)<br>
+          &nbsp;&nbsp;· Danach in der <code>profiles</code>-Tabelle eine Zeile eintragen
         </div>
-        <div class="sync-step">
-          <div class="sync-step-num">2</div>
-          <div class="sync-step-body">
-            <div class="sync-step-title">Persönliches Access Token erstellen</div>
-            <div class="sync-step-desc">
-              Gehe zu <a href="https://github.com/settings/tokens/new" target="_blank" class="sync-link">github.com/settings/tokens/new</a>
-              <span style="background:rgba(235,87,87,0.15);color:var(--red);border:1px solid var(--red);border-radius:2px;padding:0.1rem 0.4rem;font-size:0.65rem;margin-left:0.3rem">⚠ Klassisches Token verwenden!</span><br><br>
-              Falls du auf der Seite zwei Optionen siehst (<em>„Fine-grained tokens"</em> und <em>„Tokens (classic)"</em>): unbedingt <strong>„Tokens (classic)"</strong> wählen oder direkt zu <a href="https://github.com/settings/tokens/new?type=classic" target="_blank" class="sync-link">github.com/settings/tokens/new?type=classic</a><br><br>
-              · <strong>Note:</strong> "BLITZ Sync"<br>
-              · <strong>Expiration:</strong> "No expiration"<br>
-              · <strong>Scope:</strong> nur <code>gist</code> anhaken<br>
-              · Klicke <em>Generate token</em> und kopiere den Token (beginnt mit <code>ghp_</code>)
-            </div>
-          </div>
-        </div>
-        <div class="sync-step">
-          <div class="sync-step-num">3</div>
-          <div class="sync-step-body">
-            <div class="sync-step-title">Token hier einfügen</div>
-            <div class="sync-step-desc" style="margin-bottom:0.75rem">Der Token wird nur lokal in deinem Browser gespeichert und nie an Dritte übertragen.</div>
-            <div class="add-row" style="flex-wrap:wrap;gap:0.5rem">
-              <input type="password" id="gistTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="flex:1;min-width:200px" autocomplete="off">
-              <button class="btn-primary" onclick="setupGistSync()">Verbinden</button>
-              <button class="btn-ghost" onclick="debugToken()">🔍 Token testen</button>
-            </div>
-            <div id="setupError" style="color:var(--red);font-size:0.72rem;margin-top:0.5rem;display:none"></div>
-            <div id="debugOut" style="margin-top:0.75rem;display:none;background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:0.75rem;font-size:0.68rem;line-height:1.8;color:var(--muted)"></div>
-          </div>
-        </div>
+        <button class="btn-ghost" style="margin-top:0.75rem;font-size:0.72rem" onclick="showSqlScript()">📋 SQL-Script anzeigen</button>
+        <div id="sqlScriptOut" style="display:none;margin-top:0.75rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.75rem;font-size:0.62rem;color:var(--muted);white-space:pre;overflow-x:auto;line-height:1.6"></div>
       </div>
     </div>
 
-    <!-- Connected panel (shown after setup) -->
+    <!-- Step 2: Login with code -->
+    <div id="syncLogin" class="panel panel-accent" style="display:none">
+      <div class="panel-title">🔑 Anmelden</div>
+      <div class="sync-step-desc" style="margin-bottom:0.75rem">Gib deinen Zugangscode ein (wird von deinem Chef vergeben).</div>
+      <div class="add-row" style="gap:0.5rem">
+        <input type="text" id="codeInput" placeholder="Zugangscode (z.B. lukas)" style="flex:1;text-transform:lowercase" autocomplete="off" autocapitalize="none" onkeydown="if(event.key==='Enter')loginWithCode()">
+        <button class="btn-primary" onclick="loginWithCode()">Anmelden</button>
+      </div>
+      <div id="loginError" style="color:var(--red);font-size:0.72rem;margin-top:0.5rem;display:none"></div>
+      <div style="margin-top:0.75rem">
+        <button class="btn-ghost" style="font-size:0.72rem" onclick="resetSupabaseConfig()">⚙️ Supabase-Konfiguration ändern</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Connected -->
     <div id="syncConnected" style="display:none">
       <div class="panel">
         <div class="panel-title">Sync-Status</div>
         <div class="sync-info-grid">
           <div class="sync-info-item">
-            <div class="sync-info-label">Gist ID</div>
-            <div class="sync-info-val" id="syncGistId" style="font-size:0.7rem;word-break:break-all;color:var(--muted)">–</div>
+            <div class="sync-info-label">Angemeldet als</div>
+            <div class="sync-info-val" id="syncUserName">–</div>
+          </div>
+          <div class="sync-info-item">
+            <div class="sync-info-label">Rolle</div>
+            <div class="sync-info-val" id="syncUserRole">–</div>
           </div>
           <div class="sync-info-item">
             <div class="sync-info-label">Letzter Upload</div>
             <div class="sync-info-val" id="syncLastUp">–</div>
-          </div>
-          <div class="sync-info-item">
-            <div class="sync-info-label">Letzter Download</div>
-            <div class="sync-info-val" id="syncLastDown">–</div>
           </div>
           <div class="sync-info-item">
             <div class="sync-info-label">Einträge gesamt</div>
@@ -1720,56 +1719,20 @@
         </div>
         <div style="display:flex;gap:0.75rem;margin-top:1.2rem;flex-wrap:wrap">
           <button class="btn-primary" onclick="syncNow()">⟳ Jetzt synchronisieren</button>
-          <button class="btn-ghost" onclick="syncPull()">⬇ Vom Server laden</button>
-          <button class="btn-danger" onclick="disconnectSync()">✕ Trennen</button>
+          <button class="btn-danger" onclick="logout()">✕ Abmelden</button>
         </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-title">Anleitung: Auf einem zweiten Gerät einrichten</div>
-        <div class="sync-steps">
-          <div class="sync-step">
-            <div class="sync-step-num">1</div>
-            <div class="sync-step-body">
-              <div class="sync-step-title">BLITZ auf dem anderen Gerät öffnen</div>
-              <div class="sync-step-desc">Im Browser einfach <a href="https://phoenyxzzz.github.io/blitz" target="_blank" class="sync-link">phoenyxzzz.github.io/blitz</a> aufrufen — oder als PWA zum Homescreen hinzufügen.</div>
-            </div>
-          </div>
-          <div class="sync-step">
-            <div class="sync-step-num">2</div>
-            <div class="sync-step-body">
-              <div class="sync-step-title">Token & Gist ID eingeben</div>
-              <div class="sync-step-desc">
-                Auf dem neuen Gerät im Tab <strong>☁ Sync</strong> den gleichen Token eingeben.<br>
-                Deine Gist ID: <code id="syncGistIdCopy" style="color:var(--accent)">–</code><br>
-                <div class="add-row" style="margin-top:0.5rem">
-                  <button class="btn-ghost" onclick="copyGistId()">Gist ID kopieren</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="sync-step">
-            <div class="sync-step-num">3</div>
-            <div class="sync-step-body">
-              <div class="sync-step-title">Fertig — automatischer Sync</div>
-              <div class="sync-step-desc">Daten werden beim Öffnen automatisch geladen und nach jeder Änderung innerhalb von 5 Sekunden hochgeladen.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Second device: enter existing gist -->
-      <div class="panel" id="existingGistPanel" style="display:none">
-        <div class="panel-title">Vorhandenen Gist verbinden</div>
-        <div class="sync-step-desc" style="margin-bottom:0.75rem">Du hast bereits einen Gist auf einem anderen Gerät? Trage hier die Gist ID ein:</div>
-        <div class="add-row">
-          <input type="text" id="existingGistIdInput" placeholder="z.B. a1b2c3d4e5f6..." style="flex:1">
-          <button class="btn-primary" onclick="connectExistingGist()">Verbinden & laden</button>
-        </div>
-        <div id="existingGistError" style="color:var(--red);font-size:0.72rem;margin-top:0.5rem;display:none"></div>
       </div>
     </div>
+  </div>
 
+  <div id="page-team" class="page">
+    <div class="panel">
+      <div class="panel-title">Team-Übersicht</div>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
+        <select id="teamMonthSel" class="filter-select" onchange="renderTeamPage()" style="flex:1"></select>
+      </div>
+      <div id="teamContainer"><div style="color:var(--muted);text-align:center;padding:2rem">Lade…</div></div>
+    </div>
   </div>
 
 </div><!-- /appContainer -->
@@ -1817,7 +1780,7 @@ load();
 //  NAVIGATION
 // ============================================================
 // Seiten die unter "Mehr" fallen → bnav-mehr bleibt aktiv
-const MEHR_PAGES = new Set(['zeiterfassung','auswertung','stammdaten','sync']);
+const MEHR_PAGES = new Set(['zeiterfassung','auswertung','stammdaten','sync','team']);
 
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1838,6 +1801,7 @@ function showPage(id) {
   if (id === 'mehr')       { renderMehrSaldo(); }
   if (id === 'eintraege')  { populateFilterSelects(); renderEntries(); }
   if (id === 'sync')       { renderSyncPage(); }
+  if (id === 'team')       { renderTeamPage(); }
   if (id === 'uebersicht') { renderUebersicht(); }
   if (id === 'auswertung') { populateStatsMonths(); renderStats(); }
   if (id === 'stammdaten') { renderStammdaten(); updatePinSettingsUI(); }
@@ -2884,14 +2848,135 @@ function exportPDF() {
 }
 
 // ============================================================
-//  GITHUB GIST SYNC
+//  SUPABASE SYNC
 // ============================================================
-const GIST_FILENAME = 'zeitwerk_data.json';
-let syncToken = localStorage.getItem('zeitwerk_gist_token') || '';
-let syncGistId = localStorage.getItem('zeitwerk_gist_id') || '';
-let syncAuthStyle = localStorage.getItem('zeitwerk_gist_auth_style') || 'token';
-let syncPushTimer = null;
+let _supabaseClient = null;
+let supabaseUrl = localStorage.getItem('blitz_supabase_url') || '';
+let supabaseAnonKey = localStorage.getItem('blitz_supabase_key') || '';
+let currentUser = null;  // { id, code, name, role }
 let syncBusy = false;
+let syncPushTimer = null;
+let _realtimeChannel = null;
+
+function getSupabase() {
+  if (!_supabaseClient && supabaseUrl && supabaseAnonKey) {
+    _supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return _supabaseClient;
+}
+
+function saveSupabaseConfig() {
+  const url = (document.getElementById('supabaseUrlInput').value || '').trim().replace(/\/$/, '');
+  const key = (document.getElementById('supabaseKeyInput').value || '').trim();
+  const err = document.getElementById('supabaseConfigError');
+  err.style.display = 'none';
+  if (!url || !key) { err.textContent = 'Bitte beide Felder ausfüllen.'; err.style.display = ''; return; }
+  if (!url.startsWith('https://')) { err.textContent = 'URL muss mit https:// beginnen.'; err.style.display = ''; return; }
+  supabaseUrl = url;
+  supabaseAnonKey = key;
+  _supabaseClient = null;
+  localStorage.setItem('blitz_supabase_url', url);
+  localStorage.setItem('blitz_supabase_key', key);
+  renderSyncPage();
+}
+
+function resetSupabaseConfig() {
+  if (!confirm('Supabase-Konfiguration zurücksetzen?')) return;
+  localStorage.removeItem('blitz_supabase_url');
+  localStorage.removeItem('blitz_supabase_key');
+  supabaseUrl = ''; supabaseAnonKey = ''; _supabaseClient = null;
+  renderSyncPage();
+}
+
+function showSqlScript() {
+  const el = document.getElementById('sqlScriptOut');
+  if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+  el.textContent = `-- BLITZ Supabase Setup Script
+-- Im Supabase SQL-Editor ausführen
+
+create table profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  code text unique not null,
+  name text not null,
+  role text not null default 'worker'
+);
+
+create table entries (
+  id text primary key,
+  user_id uuid not null references profiles(id) on delete cascade,
+  date text not null,
+  from_time text, to_time text, break_min integer default 0,
+  customer_id text, customer_name text,
+  location_id text, location_name text,
+  task text, title text, note text,
+  transferred boolean default false,
+  deleted boolean default false,
+  updated_at timestamptz default now()
+);
+
+create table customers (
+  id text primary key,
+  user_id uuid not null references profiles(id) on delete cascade,
+  name text not null
+);
+
+create table locations (
+  id text primary key,
+  user_id uuid not null references profiles(id) on delete cascade,
+  customer_id text, name text not null
+);
+
+-- Enable RLS
+alter table profiles enable row level security;
+alter table entries enable row level security;
+alter table customers enable row level security;
+alter table locations enable row level security;
+
+-- Profiles: everyone reads own, admin reads all
+create policy "profiles_access" on profiles for all using (
+  auth.uid() = id or
+  exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+
+-- Entries: own data + admin reads all
+create policy "entries_access" on entries for all using (
+  auth.uid() = user_id or
+  exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+
+-- Customers: own data only
+create policy "customers_access" on customers for all using (auth.uid() = user_id);
+
+-- Locations: own data only
+create policy "locations_access" on locations for all using (auth.uid() = user_id);
+
+-- Enable realtime for entries
+alter publication supabase_realtime add table entries;`;
+  el.style.display = '';
+}
+
+// Restore session on startup
+(async function restoreSession() {
+  const sb = getSupabase();
+  if (!sb) { renderSyncPage(); return; }
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+    if (profile) {
+      currentUser = { id: session.user.id, code: profile.code, name: profile.name, role: profile.role };
+      updateAdminUI();
+      updateSyncTab();
+      renderSyncPage();
+      await syncPull();
+      renderEntries();
+      renderSaldo();
+      populateAllSelects();
+      setupRealtimeSync();
+      return;
+    }
+  }
+  renderSyncPage();
+})();
 
 function setSyncStatus(state, text, sub) {
   const bar = document.getElementById('syncStatusBar');
@@ -2922,189 +3007,118 @@ function setSyncStatus(state, text, sub) {
 function updateSyncTab() {
   const tab = document.getElementById('syncTab');
   if (!tab) return;
-  if (syncToken && syncGistId) {
-    tab.textContent = '✓ Sync';
-    tab.style.color = 'var(--green)';
-  } else if (syncToken) {
-    tab.textContent = '☁ Sync';
-    tab.style.color = '';
-  } else {
-    tab.textContent = '☁ Sync';
-    tab.style.color = '';
-  }
+  tab.textContent = currentUser ? '✓ Sync' : '☁ Sync';
+  tab.style.color = currentUser ? 'var(--green)' : '';
 }
 
 function renderSyncPage() {
-  const setup = document.getElementById('syncSetup');
+  const setupSupa = document.getElementById('syncSetupSupabase');
+  const login = document.getElementById('syncLogin');
   const connected = document.getElementById('syncConnected');
-  const existingPanel = document.getElementById('existingGistPanel');
-  if (!setup) return;
-
-  if (syncToken && syncGistId) {
-    setup.style.display = 'none';
-    connected.style.display = '';
-    existingPanel.style.display = 'none';
-    document.getElementById('syncGistId').textContent = syncGistId;
-    document.getElementById('syncGistIdCopy').textContent = syncGistId;
-    document.getElementById('syncEntryCount').textContent = data.entries.length;
-    setSyncStatus('ok', 'Verbunden mit GitHub Gist', '');
-  } else if (syncToken && !syncGistId) {
-    setup.style.display = 'none';
-    connected.style.display = '';
-    existingPanel.style.display = '';
-    setSyncStatus('idle', 'Token gesetzt — Gist wird erstellt oder verknüpft');
+  if (!setupSupa) return;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    setupSupa.style.display = ''; login.style.display = 'none'; connected.style.display = 'none';
+    setSyncStatus('idle', 'Supabase nicht eingerichtet');
+  } else if (!currentUser) {
+    setupSupa.style.display = 'none'; login.style.display = ''; connected.style.display = 'none';
+    setSyncStatus('idle', 'Nicht angemeldet');
   } else {
-    setup.style.display = '';
-    connected.style.display = 'none';
-    setSyncStatus('idle', 'Nicht verbunden');
+    setupSupa.style.display = 'none'; login.style.display = 'none'; connected.style.display = '';
+    document.getElementById('syncUserName').textContent = currentUser.name;
+    document.getElementById('syncUserRole').textContent = currentUser.role === 'admin' ? 'Chef / Admin' : 'Mitarbeiter';
+    document.getElementById('syncEntryCount').textContent = data.entries.length;
+    setSyncStatus('ok', 'Angemeldet als ' + currentUser.name);
   }
 }
 
-async function gistRequest(method, path, body) {
-  const res = await fetch(`https://api.github.com${path}`, {
-    method,
-    headers: {
-      'Authorization': `${syncAuthStyle} ${syncToken}`,
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-async function debugToken() {
-  const token = document.getElementById('gistTokenInput').value.trim();
-  const out = document.getElementById('debugOut');
-  out.style.display = '';
-  out.innerHTML = '⟳ Teste Token…';
-
-  if (!token) { out.innerHTML = '✕ Kein Token eingegeben.'; return; }
-
-  const lines = [];
-  lines.push(`Token-Länge: ${token.length} Zeichen`);
-  lines.push(`Beginnt mit: "${token.slice(0, 4)}..."`);
-  lines.push(`Typ erkannt: ${token.startsWith('ghp_') ? '✓ Classic Token (ghp_)' : token.startsWith('github_pat_') ? '✕ Fine-grained Token — wird nicht unterstützt!' : '? Unbekannter Typ'}`);
-  lines.push('');
-
-  // Try with "token" prefix
-  for (const authStyle of ['token', 'Bearer']) {
-    lines.push(`--- Test mit Authorization: ${authStyle} ---`);
-    try {
-      const res = await fetch('https://api.github.com/user', {
-        headers: {
-          'Authorization': `${authStyle} ${token}`,
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28'
-        }
-      });
-      const body = await res.json();
-      if (res.ok) {
-        lines.push(`✓ HTTP ${res.status} — Eingeloggt als: ${body.login}`);
-        // also test gist scope
-        const scopes = res.headers.get('X-OAuth-Scopes') || '(nicht lesbar)';
-        lines.push(`✓ Berechtigungen: ${scopes}`);
-        if (!scopes.includes('gist')) lines.push('⚠ "gist" Scope fehlt! Bitte Token neu erstellen.');
-      } else {
-        lines.push(`✕ HTTP ${res.status}: ${body.message}`);
-      }
-    } catch(e) {
-      lines.push(`✕ Netzwerkfehler: ${e.message}`);
-    }
-  }
-
-  out.innerHTML = lines.map(l =>
-    l.startsWith('✓') ? `<span style="color:var(--green)">${l}</span>` :
-    l.startsWith('✕') ? `<span style="color:var(--red)">${l}</span>` :
-    l.startsWith('⚠') ? `<span style="color:var(--accent)">${l}</span>` :
-    l.startsWith('---') ? `<span style="color:var(--accent2)">${l}</span>` : l
-  ).join('<br>');
-}
-
-async function setupGistSync() {
-  const token = document.getElementById('gistTokenInput').value.trim();
-  const errEl = document.getElementById('setupError');
+async function loginWithCode() {
+  const input = document.getElementById('codeInput');
+  const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
-  if (!token) { errEl.textContent = 'Bitte Token eingeben.'; errEl.style.display = ''; return; }
-
-  if (token.startsWith('github_pat_')) {
-    errEl.innerHTML = '✕ Du verwendest ein <strong>Fine-grained Token</strong> (beginnt mit github_pat_). Bitte erstelle ein <strong>klassisches Token</strong> unter: <a href="https://github.com/settings/tokens/new?type=classic" target="_blank" class="sync-link">github.com/settings/tokens/new?type=classic</a>';
-    errEl.style.display = '';
-    return;
-  }
-
-  setSyncStatus('busy', 'Verbinde mit GitHub…');
-
-  // Auto-detect working auth style
-  let workingStyle = null;
-  for (const style of ['token', 'Bearer']) {
-    try {
-      const res = await fetch('https://api.github.com/user', {
-        headers: {
-          'Authorization': `${style} ${token}`,
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28'
-        }
-      });
-      if (res.ok) { workingStyle = style; break; }
-    } catch(e) {}
-  }
-
-  if (!workingStyle) {
-    setSyncStatus('error', 'Authentifizierung fehlgeschlagen');
-    errEl.innerHTML = '✕ Token ungültig. Bitte <strong>🔍 Token testen</strong> klicken für Details, oder ein neues klassisches Token erstellen.';
-    errEl.style.display = '';
-    return;
-  }
-
-  // Store working style and use it from now on
-  syncAuthStyle = workingStyle;
-  localStorage.setItem('zeitwerk_gist_auth_style', workingStyle);
-  syncToken = token;
-  localStorage.setItem('zeitwerk_gist_token', token);
-
+  const code = (input?.value || '').trim().toLowerCase();
+  if (!code) { errEl.textContent = 'Bitte Code eingeben.'; errEl.style.display = ''; return; }
+  const sb = getSupabase();
+  if (!sb) return;
+  setSyncStatus('busy', 'Anmelden…');
   try {
-    // Look for existing Zeitwerk gist
-    const gists = await gistRequest('GET', '/gists');
-    const existing = gists.find(g => g.files && g.files[GIST_FILENAME]);
-    if (existing) {
-      syncGistId = existing.id;
-      localStorage.setItem('zeitwerk_gist_id', syncGistId);
-      await syncNow(); // pull then push so local tombstones propagate to Gist
-    } else {
-      const created = await gistRequest('POST', '/gists', {
-        description: 'Zeitwerk – Arbeitszeiterfassung',
-        public: false,
-        files: { [GIST_FILENAME]: { content: JSON.stringify(data) } }
-      });
-      syncGistId = created.id;
-      localStorage.setItem('zeitwerk_gist_id', syncGistId);
-      setSyncStatus('ok', 'Gist erstellt & Daten hochgeladen', `Gist ID: ${syncGistId}`);
-      document.getElementById('syncLastUp').textContent = new Date().toLocaleTimeString('de-AT');
-    }
+    const { data: authData, error } = await sb.auth.signInWithPassword({
+      email: `${code}@blitz.internal`, password: code
+    });
+    if (error) throw new Error('Ungültiger Code');
+    const { data: profile, error: pErr } = await sb.from('profiles').select('*').eq('id', authData.user.id).single();
+    if (pErr || !profile) throw new Error('Profil nicht gefunden – Administrator kontaktieren');
+    currentUser = { id: authData.user.id, code: profile.code, name: profile.name, role: profile.role };
+    localStorage.setItem('blitz_user_code', code);
+    if (data.entries.length > 0 || data.customers.length > 0) await syncPush();
+    await syncPull();
+    setupRealtimeSync();
+    updateAdminUI();
     updateSyncTab();
     renderSyncPage();
+    renderEntries();
+    renderSaldo();
+    populateAllSelects();
   } catch(e) {
-    setSyncStatus('error', 'Fehler: ' + e.message);
-    errEl.textContent = 'Fehler: ' + e.message;
+    setSyncStatus('error', e.message);
+    errEl.textContent = e.message;
     errEl.style.display = '';
-    syncToken = ''; localStorage.removeItem('zeitwerk_gist_token');
   }
+}
+
+async function logout() {
+  if (!confirm('Abmelden? Lokale Daten bleiben erhalten.')) return;
+  const sb = getSupabase();
+  if (sb) {
+    await sb.auth.signOut();
+    if (_realtimeChannel) { sb.removeChannel(_realtimeChannel); _realtimeChannel = null; }
+  }
+  currentUser = null;
+  localStorage.removeItem('blitz_user_code');
+  setSyncStatus('idle', 'Nicht angemeldet');
+  updateSyncTab();
+  renderSyncPage();
+  updateAdminUI();
 }
 
 async function syncPush() {
-  if (!syncToken || !syncGistId || syncBusy) return;
+  if (!currentUser || syncBusy) return;
+  const sb = getSupabase();
+  if (!sb) return;
   syncBusy = true;
   setSyncStatus('busy', 'Lade hoch…');
   try {
-    await gistRequest('PATCH', `/gists/${syncGistId}`, {
-      files: { [GIST_FILENAME]: { content: JSON.stringify(data) } }
-    });
+    const uid = currentUser.id;
+    const now = new Date().toISOString();
+    if (data.entries.length > 0) {
+      const { error } = await sb.from('entries').upsert(data.entries.map(e => ({
+        id: String(e.id), user_id: uid, date: e.date,
+        from_time: e.from, to_time: e.to, break_min: e.breakMin || 0,
+        customer_id: e.customerId || null, customer_name: e.customerName || null,
+        location_id: e.locationId || null, location_name: e.locationName || null,
+        task: e.task || null, title: e.title || null, note: e.note || null,
+        transferred: e.transferred || false, deleted: false, updated_at: now
+      })));
+      if (error) throw error;
+    }
+    if (data.deletedIds?.length > 0) {
+      const { error } = await sb.from('entries').upsert(data.deletedIds.map(id => ({
+        id: String(id), user_id: uid, date: '1970-01-01',
+        deleted: true, updated_at: now
+      })));
+      if (error) throw error;
+    }
+    if (data.customers.length > 0) {
+      const { error } = await sb.from('customers').upsert(data.customers.map(c => ({
+        id: String(c.id), user_id: uid, name: c.name
+      })));
+      if (error) throw error;
+    }
+    if (data.locations.length > 0) {
+      const { error } = await sb.from('locations').upsert(data.locations.map(l => ({
+        id: String(l.id), user_id: uid, customer_id: l.customerId || null, name: l.name
+      })));
+      if (error) throw error;
+    }
     const ts = new Date().toLocaleTimeString('de-AT');
     setSyncStatus('ok', 'Synchronisiert', `Zuletzt: ${ts}`);
     const el = document.getElementById('syncLastUp');
@@ -3118,23 +3132,36 @@ async function syncPush() {
 }
 
 async function syncPull() {
-  if (!syncToken || !syncGistId) return;
+  if (!currentUser) return;
+  const sb = getSupabase();
+  if (!sb) return;
   syncBusy = true;
   setSyncStatus('busy', 'Lade Daten…');
   try {
-    const gist = await gistRequest('GET', `/gists/${syncGistId}`);
-    const content = gist.files[GIST_FILENAME]?.content;
-    if (content) {
-      const remote = JSON.parse(content);
-      // Merge: take all entries, deduplicate by id, keep newer by date+from
-      const merged = mergeData(data, remote);
-      data = merged;
-      save();
-      renderEntries();
-      renderSaldo();
-      populateAllSelects();
-      renderSyncPage();
-    }
+    const uid = currentUser.id;
+    const [{ data: entriesRaw, error: eErr }, { data: deletedRaw }, { data: custsRaw, error: cErr }, { data: locsRaw, error: lErr }] = await Promise.all([
+      sb.from('entries').select('*').eq('user_id', uid).eq('deleted', false).order('date', { ascending: false }),
+      sb.from('entries').select('id').eq('user_id', uid).eq('deleted', true),
+      sb.from('customers').select('*').eq('user_id', uid),
+      sb.from('locations').select('*').eq('user_id', uid)
+    ]);
+    if (eErr) throw eErr;
+    if (cErr) throw cErr;
+    if (lErr) throw lErr;
+    data.entries = (entriesRaw || []).map(e => ({
+      id: e.id, date: e.date, from: e.from_time, to: e.to_time,
+      breakMin: e.break_min, customerId: e.customer_id, customerName: e.customer_name,
+      locationId: e.location_id, locationName: e.location_name,
+      task: e.task, title: e.title, note: e.note, transferred: e.transferred
+    }));
+    data.customers = (custsRaw || []).map(c => ({ id: c.id, name: c.name }));
+    data.locations = (locsRaw || []).map(l => ({ id: l.id, customerId: l.customer_id, name: l.name }));
+    data.deletedIds = (deletedRaw || []).map(e => e.id);
+    localStorage.setItem('zeitwerk_v2', JSON.stringify(data));
+    renderEntries();
+    renderSaldo();
+    populateAllSelects();
+    renderSyncPage();
     const ts = new Date().toLocaleTimeString('de-AT');
     setSyncStatus('ok', 'Synchronisiert', `Zuletzt: ${ts}`);
     const el = document.getElementById('syncLastDown');
@@ -3145,82 +3172,107 @@ async function syncPull() {
   syncBusy = false;
 }
 
-function mergeData(local, remote) {
-  // Merge deletedIds: union of both sides (tombstones)
-  const deletedIds = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
-  // Merge entries by id, remote wins on conflict (last-write-wins)
-  const entryMap = {};
-  [...(local.entries || []), ...(remote.entries || [])].forEach(e => {
-    entryMap[e.id] = e; // remote overwrites local
-  });
-  // Remove tombstoned entries — deletions always win
-  deletedIds.forEach(id => delete entryMap[id]);
-  // Merge customers: union by id
-  const custMap = {};
-  [...(local.customers || []), ...(remote.customers || [])].forEach(c => { custMap[c.id] = c; });
-  // Merge locations: union by id
-  const locMap = {};
-  [...(local.locations || []), ...(remote.locations || [])].forEach(l => { locMap[l.id] = l; });
-
-  return {
-    entries: Object.values(entryMap).sort((a,b) => (b.date+b.from).localeCompare(a.date+a.from)),
-    customers: Object.values(custMap),
-    locations: Object.values(locMap),
-    deletedIds: [...deletedIds]
-  };
-}
-
 async function syncNow() {
   await syncPull();
   await syncPush();
 }
 
-async function connectExistingGist() {
-  const id = document.getElementById('existingGistIdInput').value.trim();
-  const errEl = document.getElementById('existingGistError');
-  errEl.style.display = 'none';
-  if (!id) { errEl.textContent = 'Bitte Gist ID eingeben.'; errEl.style.display = ''; return; }
-  setSyncStatus('busy', 'Verbinde…');
-  try {
-    syncGistId = id;
-    localStorage.setItem('zeitwerk_gist_id', syncGistId);
-    await syncNow(); // pull then push so local tombstones propagate to Gist
-    updateSyncTab();
-    renderSyncPage();
-  } catch(e) {
-    syncGistId = ''; localStorage.removeItem('zeitwerk_gist_id');
-    errEl.textContent = 'Fehler: ' + e.message;
-    errEl.style.display = '';
-    setSyncStatus('error', 'Verbindung fehlgeschlagen');
+function setupRealtimeSync() {
+  const sb = getSupabase();
+  if (!sb || !currentUser) return;
+  if (_realtimeChannel) sb.removeChannel(_realtimeChannel);
+  _realtimeChannel = sb.channel('blitz-entries')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${currentUser.id}` }, () => {
+      if (!syncBusy) syncPull();
+    })
+    .subscribe();
+}
+
+function updateAdminUI() {
+  const isAdmin = currentUser?.role === 'admin';
+  const teamTab = document.getElementById('teamTab');
+  const bnavTeam = document.getElementById('bnav-team');
+  if (teamTab) teamTab.style.display = isAdmin ? '' : 'none';
+  if (bnavTeam) bnavTeam.style.display = isAdmin ? '' : 'none';
+}
+
+async function renderTeamPage() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  const sb = getSupabase();
+  if (!sb) return;
+
+  // Populate month selector
+  const sel = document.getElementById('teamMonthSel');
+  if (sel && sel.options.length === 0) {
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const label = d.toLocaleDateString('de-AT', { month: 'long', year: 'numeric' });
+      const opt = document.createElement('option');
+      opt.value = val; opt.textContent = label;
+      sel.appendChild(opt);
+    }
   }
-}
 
-function disconnectSync() {
-  if (!confirm('Sync trennen? Lokale Daten bleiben erhalten.')) return;
-  syncToken = ''; syncGistId = ''; syncAuthStyle = 'token';
-  localStorage.removeItem('zeitwerk_gist_token');
-  localStorage.removeItem('zeitwerk_gist_id');
-  localStorage.removeItem('zeitwerk_gist_auth_style');
-  setSyncStatus('idle', 'Nicht verbunden');
-  updateSyncTab();
-  renderSyncPage();
-}
+  const month = sel?.value || new Date().toISOString().slice(0,7);
+  const container = document.getElementById('teamContainer');
+  container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:2rem">Lade…</div>';
 
-function copyGistId() {
-  navigator.clipboard.writeText(syncGistId).then(() => {
-    const btn = event.target;
-    btn.textContent = '✓ Kopiert!';
-    setTimeout(() => btn.textContent = 'Gist ID kopieren', 2000);
-  });
+  const { data: allEntries, error } = await sb
+    .from('entries')
+    .select('*, profiles!entries_user_id_fkey(name)')
+    .eq('deleted', false)
+    .gte('date', month + '-01')
+    .lte('date', month + '-31')
+    .order('date', { ascending: false });
+
+  if (error) {
+    container.innerHTML = `<div style="color:var(--red)">Fehler: ${error.message}</div>`;
+    return;
+  }
+
+  const byUser = {};
+  for (const e of (allEntries || [])) {
+    const name = e.profiles?.name || 'Unbekannt';
+    if (!byUser[name]) byUser[name] = [];
+    byUser[name].push(e);
+  }
+
+  if (Object.keys(byUser).length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:2rem">Keine Einträge in diesem Monat</div>';
+    return;
+  }
+
+  let html = '';
+  for (const [name, entries] of Object.entries(byUser).sort()) {
+    const totalMin = entries.reduce((sum, e) => {
+      const dur = calcDuration(e.from_time || '', e.to_time || '', e.break_min || 0);
+      return sum + dur.total;
+    }, 0);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    const pending = entries.filter(e => !e.transferred).length;
+    html += `<div class="panel" style="margin-bottom:0.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:500;font-size:0.95rem">${name}</div>
+        <div style="color:var(--accent);font-family:'DM Mono',monospace;font-size:1.1rem">${h}h ${String(m).padStart(2,'0')}m</div>
+      </div>
+      <div style="color:var(--muted);font-size:0.72rem;margin-top:0.3rem">
+        ${entries.length} Einträge · ${pending > 0 ? `<span style="color:var(--accent2)">${pending} nicht übertragen</span>` : '<span style="color:var(--green)">alle übertragen</span>'}
+      </div>
+    </div>`;
+  }
+  container.innerHTML = html;
 }
 
 // Override save() to trigger auto-sync push with debounce
 const _originalSave = save;
 function save() {
   localStorage.setItem('zeitwerk_v2', JSON.stringify(data));
-  if (syncToken && syncGistId) {
+  if (currentUser) {
     clearTimeout(syncPushTimer);
-    syncPushTimer = setTimeout(() => syncPush(), 5000); // 5s debounce
+    syncPushTimer = setTimeout(() => syncPush(), 5000);
   }
 }
 
@@ -3377,20 +3429,7 @@ updateSyncTab();
 initPinLock();
 initQuickEntry();
 
-// Auto-sync on startup if sync configured (pull then push so tombstones propagate)
-if (syncToken && syncGistId) {
-  setSyncStatus('busy', 'Synchronisiere…');
-  syncNow().then(() => {
-    populateAllSelects();
-    renderEntries();
-    renderSaldo();
-  });
-}
-
-// Background pull every 5 minutes (push happens immediately on every change)
-setInterval(() => {
-  if (syncToken && syncGistId && !syncBusy) syncPull();
-}, 5 * 60 * 1000);
+// Sync is handled by restoreSession() above and Supabase realtime subscriptions
 
 // ============================================================
 //  QUICK ENTRY – Neu-Seite
@@ -3634,7 +3673,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     if (timerStart) { showTimerBanner(); setTimeout(hideTimerBanner, 5000); }
     // Pull-only wenn Tab wieder aktiv wird (mind. 60s seit letztem Sync)
-    if (syncToken && syncGistId && !syncBusy && Date.now() - _lastSyncTs > 60000) {
+    if (currentUser && !syncBusy && Date.now() - _lastSyncTs > 60000) {
       _lastSyncTs = Date.now();
       syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
     }
@@ -3642,7 +3681,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 window.addEventListener('focus', () => {
-  if (syncToken && syncGistId && !syncBusy && Date.now() - _lastSyncTs > 60000) {
+  if (currentUser && !syncBusy && Date.now() - _lastSyncTs > 60000) {
     _lastSyncTs = Date.now();
     syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
   }
