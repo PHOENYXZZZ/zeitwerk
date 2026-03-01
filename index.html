@@ -1133,6 +1133,13 @@
   <button onclick="location.reload()">Neu laden</button>
 </div>
 
+<!-- BACKUP REMINDER BANNER -->
+<div class="update-banner" id="backupBanner" style="background:#c4956a;top:3rem">
+  <span>💾 Kein Backup seit 7+ Tagen — CSV exportieren?</span>
+  <button onclick="exportCSV();dismissBackupBanner()">Exportieren</button>
+  <button onclick="dismissBackupBanner()" style="margin-left:0.5rem;background:rgba(0,0,0,0.2)">Später</button>
+</div>
+
 <!-- PIN LOCK OVERLAY -->
 <div class="pin-overlay hidden" id="pinOverlay">
   <div class="pin-logo">BLITZ</div>
@@ -1162,7 +1169,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v33</div>
+<div class="version-badge">v34</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -2742,6 +2749,8 @@ function exportCSV() {
   a.href = url;
   a.download = `zeitwerk_export_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
+  localStorage.setItem('blitz_last_export', Date.now());
+  dismissBackupBanner();
 }
 
 function exportPDF() {
@@ -2962,7 +2971,7 @@ alter publication supabase_realtime add table entries;`;
     if (profile) {
       currentUser = { id: profile.id, code: profile.code, name: profile.name, role: profile.role };
       updateAdminUI(); updateSyncTab(); renderSyncPage();
-      syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
+      syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); checkBackupReminder(); });
       setupRealtimeSync();
     } else {
       localStorage.removeItem('blitz_user_code'); localStorage.removeItem('blitz_user_id');
@@ -3051,6 +3060,7 @@ async function loginWithCode() {
     updateAdminUI();
     updateSyncTab();
     renderSyncPage();
+    checkBackupReminder();
     renderEntries();
     renderSaldo();
     populateAllSelects();
@@ -3732,6 +3742,24 @@ window.addEventListener('focus', () => {
     syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
   }
 });
+
+// ============================================================
+//  BACKUP REMINDER
+// ============================================================
+function dismissBackupBanner() {
+  const b = document.getElementById('backupBanner');
+  if (b) b.classList.remove('visible');
+}
+
+function checkBackupReminder() {
+  if (!currentUser) return;
+  const last = parseInt(localStorage.getItem('blitz_last_export') || '0');
+  const days7 = 7 * 24 * 60 * 60 * 1000;
+  if (Date.now() - last > days7) {
+    const b = document.getElementById('backupBanner');
+    if (b) b.classList.add('visible');
+  }
+}
 
 // ============================================================
 //  SERVICE WORKER REGISTRIERUNG
