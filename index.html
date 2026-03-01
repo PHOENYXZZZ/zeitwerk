@@ -1163,7 +1163,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v41</div>
+<div class="version-badge">v42</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -2025,13 +2025,13 @@ function renderEntryCard(e) {
         <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
         ${breakInfo}
         <button class="transfer-btn ${e.transferred ? 'done' : ''}" data-transfer-id="${e.id}"
-          onclick="toggleTransferred(${e.id})"
+          onclick="toggleTransferred('${e.id}')"
           title="${e.transferred ? 'Als ausstehend markieren' : 'Als übertragen markieren'}">✓</button>
       </div>
       <div class="entry-actions">
-        <button class="entry-dup"    onclick="duplicateEntry(${e.id})"  title="Kopieren">📋 <span class="btn-label">Kopieren</span></button>
-        <button class="entry-edit"   onclick="editEntry(${e.id})"       title="Bearbeiten">✎ <span class="btn-label">Bearbeiten</span></button>
-        <button class="entry-delete" data-delete-id="${e.id}" onclick="deleteEntry(${e.id})" title="Löschen">× <span class="btn-label">Löschen</span></button>
+        <button class="entry-dup"    onclick="duplicateEntry('${e.id}')"  title="Kopieren">📋 <span class="btn-label">Kopieren</span></button>
+        <button class="entry-edit"   onclick="editEntry('${e.id}')"       title="Bearbeiten">✎ <span class="btn-label">Bearbeiten</span></button>
+        <button class="entry-delete" data-delete-id="${e.id}" onclick="deleteEntry('${e.id}')" title="Löschen">× <span class="btn-label">Löschen</span></button>
       </div>
     </div>`;
 }
@@ -2103,7 +2103,7 @@ function renderEntries() {
 }
 
 function toggleTransferred(id) {
-  const e = data.entries.find(x => x.id === id);
+  const e = data.entries.find(x => String(x.id) === String(id));
   if (!e) return;
   e.transferred = !e.transferred;
   save(); // debounced push via save()
@@ -3631,9 +3631,9 @@ function renderMehrSaldo() {
 //  EINTRAG DUPLIZIEREN
 // ============================================================
 function duplicateEntry(id) {
-  const e = data.entries.find(x => x.id === id);
+  const e = data.entries.find(x => String(x.id) === String(id));
   if (!e) return;
-  const copy = { ...e, id: Date.now(), date: isoDate(new Date()) };
+  const copy = { ...e, id: String(Date.now()), date: isoDate(new Date()) };
   data.entries.unshift(copy);
   save();
   renderEntries();
@@ -3701,7 +3701,7 @@ let _editId = null;
 let _deleteTimers = {};
 
 function editEntry(id) {
-  const e = data.entries.find(x => x.id === id);
+  const e = data.entries.find(x => String(x.id) === String(id));
   if (!e) return;
   _editId = id;
 
@@ -3778,7 +3778,7 @@ function deleteEntry(id) {
     // Zweiter Klick → wirklich löschen
     clearTimeout(_deleteTimers[id]);
     delete _deleteTimers[id];
-    data.entries = data.entries.filter(e => e.id !== id);
+    data.entries = data.entries.filter(e => String(e.id) !== String(id));
     // Tombstone: track deleted id so sync pull never brings it back
     if (!data.deletedIds) data.deletedIds = [];
     if (!data.deletedIds.includes(id)) data.deletedIds.push(id);
