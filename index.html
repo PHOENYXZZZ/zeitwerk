@@ -1162,7 +1162,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v30</div>
+<div class="version-badge">v31</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -2986,7 +2986,7 @@ function renderSyncPage() {
   } else {
     login.style.display = 'none'; connected.style.display = '';
     document.getElementById('syncUserName').textContent = currentUser.name;
-    document.getElementById('syncUserRole').textContent = currentUser.role === 'admin' ? 'Chef / Admin' : 'Mitarbeiter';
+    document.getElementById('syncUserRole').textContent = currentUser.role === 'admin' ? 'Admin' : 'Mitarbeiter';
     document.getElementById('syncEntryCount').textContent = data.entries.length;
     setSyncStatus('ok', 'Angemeldet als ' + currentUser.name);
   }
