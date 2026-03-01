@@ -3044,7 +3044,7 @@ async function loginWithCode() {
     const { data: authData, error } = await sb.auth.signInWithPassword({
       email: `${code}@blitz.internal`, password: code
     });
-    if (error) throw new Error('Ungültiger Code');
+    if (error) throw new Error('Ungültiger Code: ' + error.message);
     const { data: profile, error: pErr } = await sb.from('profiles').select('*').eq('id', authData.user.id).single();
     if (pErr || !profile) throw new Error('Profil nicht gefunden – Administrator kontaktieren');
     currentUser = { id: authData.user.id, code: profile.code, name: profile.name, role: profile.role };
