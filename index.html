@@ -3388,10 +3388,10 @@ if (syncToken && syncGistId) {
   });
 }
 
-// Auto-sync every 2 minutes while app is open
+// Auto-sync every 30 seconds while app is open
 setInterval(() => {
   if (syncToken && syncGistId && !syncBusy) syncNow();
-}, 2 * 60 * 1000);
+}, 30 * 1000);
 
 // ============================================================
 //  QUICK ENTRY – Neu-Seite
@@ -3630,10 +3630,22 @@ function hideTimerBanner() {
   document.getElementById('timerBanner').classList.remove('visible');
 }
 
+let _lastSyncTs = 0;
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && timerStart) {
-    showTimerBanner();
-    setTimeout(hideTimerBanner, 5000); // Auto-ausblenden nach 5s
+  if (document.visibilityState === 'visible') {
+    if (timerStart) { showTimerBanner(); setTimeout(hideTimerBanner, 5000); }
+    // Sofort synken wenn Tab wieder aktiv wird (mind. 10s seit letztem Sync)
+    if (syncToken && syncGistId && !syncBusy && Date.now() - _lastSyncTs > 10000) {
+      _lastSyncTs = Date.now();
+      syncNow().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
+    }
+  }
+});
+
+window.addEventListener('focus', () => {
+  if (syncToken && syncGistId && !syncBusy && Date.now() - _lastSyncTs > 10000) {
+    _lastSyncTs = Date.now();
+    syncNow().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
   }
 });
 
