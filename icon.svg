@@ -1,5 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="96" fill="#0f0e0b"/>
-  <rect x="0" y="0" width="512" height="4" rx="2" fill="#e8c547"/>
-  <text x="256" y="370" text-anchor="middle" font-size="320" font-family="Georgia, serif" font-weight="700" fill="#e8c547" letter-spacing="-10">Z</text>
+  <polygon points="295,55 185,55 152,255 238,255 182,458 368,225 268,225" fill="#e8c547"/>
 </svg>

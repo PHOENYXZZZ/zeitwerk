@@ -1,6 +1,6 @@
 {
-  "name": "Zeitwerk",
-  "short_name": "Zeitwerk",
+  "name": "Blitz",
+  "short_name": "Blitz",
   "description": "Zeiterfassung für Elektro · Energie & Gebäudetechnik",
   "start_url": "./",
   "scope": "./",
