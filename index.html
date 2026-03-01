@@ -1169,7 +1169,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v36</div>
+<div class="version-badge">v37</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -1787,11 +1787,14 @@ let data = {
 };
 
 function load() {
-  const saved = localStorage.getItem('zeitwerk_v2');
+  // Migration: zeitwerk_v2 → blitz_v2
+  const legacy = localStorage.getItem('zeitwerk_v2');
+  if (legacy) { localStorage.setItem('blitz_v2', legacy); localStorage.removeItem('zeitwerk_v2'); }
+  const saved = localStorage.getItem('blitz_v2');
   if (saved) data = JSON.parse(saved);
   data.deletedIds = data.deletedIds || [];
 }
-function save() { localStorage.setItem('zeitwerk_v2', JSON.stringify(data)); }
+function save() { localStorage.setItem('blitz_v2', JSON.stringify(data)); }
 
 load();
 
@@ -2201,7 +2204,7 @@ function populateFilterSelects() {
 // ============================================================
 //  STUNDEN-SALDO (Über-/Minusstunden)
 // ============================================================
-let WOCHENSOLL_MIN = (parseFloat(localStorage.getItem('zeitwerk_wochensoll')) || 39) * 60;
+let WOCHENSOLL_MIN = (parseFloat(localStorage.getItem('blitz_wochensoll')) || 39) * 60;
 
 function isoDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -2269,7 +2272,7 @@ function updateWochensoll(val) {
   const h = parseFloat(val);
   if (isNaN(h) || h <= 0) return;
   WOCHENSOLL_MIN = h * 60;
-  localStorage.setItem('zeitwerk_wochensoll', h);
+  localStorage.setItem('blitz_wochensoll', h);
   renderSaldo();
   // Update daily hint in panel without full re-render losing focus
 }
@@ -2747,7 +2750,7 @@ function exportCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `zeitwerk_export_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `blitz_export_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   localStorage.setItem('blitz_last_export', Date.now());
   dismissBackupBanner();
@@ -3053,7 +3056,7 @@ async function loginWithCode() {
     } else if (previousUserId !== profile.id) {
       // Anderer User → lokalen Cache leeren um Datenvermischung zu verhindern
       data = { entries: [], customers: [], locations: [], deletedIds: [] };
-      localStorage.setItem('zeitwerk_v2', JSON.stringify(data));
+      localStorage.setItem('blitz_v2', JSON.stringify(data));
     }
     await syncPull();
     setupRealtimeSync();
@@ -3086,7 +3089,7 @@ async function logout() {
   localStorage.removeItem('blitz_user_id');
   // Lokalen Cache leeren damit beim nächsten Login keine fremden Daten auftauchen
   data = { entries: [], customers: [], locations: [], deletedIds: [] };
-  localStorage.setItem('zeitwerk_v2', JSON.stringify(data));
+  localStorage.setItem('blitz_v2', JSON.stringify(data));
   setSyncStatus('idle', 'Nicht angemeldet');
   updateSyncTab();
   renderSyncPage();
@@ -3174,7 +3177,7 @@ async function syncPull() {
     data.customers = (custsRaw || []).map(c => ({ id: c.id, name: c.name }));
     data.locations = (locsRaw || []).map(l => ({ id: l.id, customerId: l.customer_id, name: l.name }));
     data.deletedIds = (deletedRaw || []).map(e => e.id);
-    localStorage.setItem('zeitwerk_v2', JSON.stringify(data));
+    localStorage.setItem('blitz_v2', JSON.stringify(data));
     renderEntries();
     renderSaldo();
     populateAllSelects();
@@ -3335,7 +3338,7 @@ async function renderTeamPage() {
 // Override save() to trigger auto-sync push with debounce
 const _originalSave = save;
 function save() {
-  localStorage.setItem('zeitwerk_v2', JSON.stringify(data));
+  localStorage.setItem('blitz_v2', JSON.stringify(data));
   if (currentUser) {
     clearTimeout(syncPushTimer);
     syncPushTimer = setTimeout(() => syncPush(), 5000);
@@ -3357,7 +3360,7 @@ function pinHash(pin) {
 }
 
 function initPinLock() {
-  const stored = localStorage.getItem('zeitwerk_pin');
+  const stored = localStorage.getItem('blitz_pin');
   if (stored) {
     // Show lock screen
     document.getElementById('pinOverlay').classList.remove('hidden');
@@ -3370,7 +3373,7 @@ function initPinLock() {
 }
 
 function updatePinSettingsUI() {
-  const stored = localStorage.getItem('zeitwerk_pin');
+  const stored = localStorage.getItem('blitz_pin');
   const info = document.getElementById('pinStatusInfo');
   const btnSet = document.getElementById('btnSetPin');
   const btnRemove = document.getElementById('btnRemovePin');
@@ -3424,7 +3427,7 @@ function updatePinDots() {
 
 function handlePinComplete() {
   if (pinMode === 'unlock') {
-    const stored = localStorage.getItem('zeitwerk_pin');
+    const stored = localStorage.getItem('blitz_pin');
     if (pinHash(pinBuffer) === stored) {
       // Correct!
       document.getElementById('pinOverlay').classList.add('hidden');
@@ -3448,7 +3451,7 @@ function handlePinComplete() {
     updatePinDots();
   } else if (pinMode === 'setup2') {
     if (pinBuffer === pinSetupFirst) {
-      localStorage.setItem('zeitwerk_pin', pinHash(pinBuffer));
+      localStorage.setItem('blitz_pin', pinHash(pinBuffer));
       document.getElementById('pinOverlay').classList.add('hidden');
       document.getElementById('appContainer').style.display = '';
       updatePinSettingsUI();
@@ -3471,7 +3474,7 @@ function handlePinComplete() {
 
 function removePin() {
   if (!confirm('PIN-Schutz wirklich entfernen?')) return;
-  localStorage.removeItem('zeitwerk_pin');
+  localStorage.removeItem('blitz_pin');
   updatePinSettingsUI();
 }
 
