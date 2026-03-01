@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Zeitwerk">
 <title>Zeitwerk – Elektriker</title>
+<link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -815,6 +816,27 @@
     #wochensollInput { width: 50px !important; font-size: 1.2rem !important; }
   }
 
+  /* UPDATE BANNER */
+  .update-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: var(--accent); color: #0f0e0b;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 1rem;
+    font-size: 0.75rem; font-family: 'DM Mono', monospace;
+    text-transform: uppercase; letter-spacing: 1px;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+  }
+  .update-banner.visible { transform: translateY(0); }
+  .update-banner button {
+    background: #0f0e0b; color: var(--accent);
+    border: none; border-radius: 2px;
+    padding: 0.3rem 0.8rem; font-size: 0.7rem;
+    cursor: pointer; min-height: unset;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
   /* Desktop: bottom nav hidden */
   .bottom-nav { display: none; }
 
@@ -862,6 +884,12 @@
 </style>
 </head>
 <body>
+
+<!-- UPDATE BANNER -->
+<div class="update-banner" id="updateBanner">
+  <span>⬆ Neue Version verfügbar</span>
+  <button onclick="location.reload()">Neu laden</button>
+</div>
 
 <!-- PIN LOCK OVERLAY -->
 <div class="pin-overlay hidden" id="pinOverlay">
@@ -1091,8 +1119,8 @@
     </div>
 
     <div class="export-row no-print">
-      <button class="btn-export" onclick="exportCSV()">⬇ CSV exportieren</button>
-      <button class="btn-ghost" onclick="printView()">🖨 Drucken / PDF</button>
+      <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
+      <button class="btn-ghost" onclick="exportPDF()">⬇ PDF Stundenzettel</button>
     </div>
 
     <div class="entries-list" id="entriesList"></div>
@@ -2168,10 +2196,138 @@ function exportCSV() {
   a.click();
 }
 
-function printView() {
-  populateFilterSelects();
-  renderEntries();
-  setTimeout(() => window.print(), 200);
+function exportPDF() {
+  const filtered = getFilteredEntries();
+  if (filtered.length === 0) { alert('Keine Einträge für den gewählten Filter.'); return; }
+
+  const totalMins = filtered.reduce((s, e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
+  const totalH = Math.floor(totalMins / 60);
+  const totalM = totalMins % 60;
+
+  const filterMonth = document.getElementById('filterMonth');
+  const filterCustomer = document.getElementById('filterCustomer');
+  const periodLabel = filterMonth.value
+    ? filterMonth.options[filterMonth.selectedIndex].text
+    : 'Alle Zeiträume';
+  const customerLabel = filterCustomer.value
+    ? filterCustomer.options[filterCustomer.selectedIndex].text
+    : 'Alle Kunden';
+
+  const rows = filtered.map(e => {
+    const dur = calcDuration(e.from, e.to, e.breakMin);
+    const dateStr = new Date(e.date + 'T12:00').toLocaleDateString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const taskColors = { Installation: '#1a6b3a', Wartung: '#1a3d6b', Störung: '#6b1a1a', Sonstiges: '#5a3a1a' };
+    const taskBg = e.task ? (taskColors[e.task] || '#5a3a1a') : '';
+    const taskBadge = e.task ? `<span style="background:${taskBg};color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;letter-spacing:0.5px">${e.task}</span>` : '';
+    const breakStr = e.breakMin > 0 ? `${e.breakMin} min` : '–';
+    const desc = [e.title, e.note].filter(Boolean).join(' · ') || '';
+    return `
+      <tr>
+        <td>${dateStr}</td>
+        <td>${e.from} – ${e.to}</td>
+        <td style="text-align:center">${breakStr}</td>
+        <td style="text-align:right;font-weight:600">${dur.h}h ${String(dur.m).padStart(2,'0')}m</td>
+        <td>${e.customerName || '–'}</td>
+        <td>${e.locationName && e.locationName !== '– Standort wählen –' ? e.locationName : '–'}</td>
+        <td>${taskBadge}</td>
+        <td style="color:#555;font-size:10px">${desc}</td>
+      </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<title>Stundenzettel – ${periodLabel}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #1a1a1a; padding: 2cm 1.8cm; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #c8a832; }
+  .logo { font-size: 22px; font-weight: 700; color: #c8a832; letter-spacing: -1px; }
+  .company { font-size: 10px; color: #666; margin-top: 2px; }
+  .meta { text-align: right; }
+  .meta-label { font-size: 9px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+  .meta-val { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+  h2 { font-size: 14px; color: #444; margin-bottom: 1rem; font-weight: 400; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+  th { background: #f5f0e0; color: #555; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 8px; text-align: left; border-bottom: 2px solid #c8a832; }
+  td { padding: 6px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafaf7; }
+  tr:last-child td { border-bottom: none; }
+  .total-row { background: #f5f0e0 !important; font-weight: 700; }
+  .total-row td { border-top: 2px solid #c8a832; font-size: 12px; padding: 8px; }
+  .summary { display: flex; gap: 2rem; margin-top: 1.5rem; padding: 1rem; background: #f9f6ec; border-left: 3px solid #c8a832; }
+  .summary-item { }
+  .summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 3px; }
+  .summary-val { font-size: 18px; font-weight: 700; color: #c8a832; }
+  .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd; font-size: 9px; color: #999; display: flex; justify-content: space-between; }
+  @media print { body { padding: 1cm; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="logo">Zeitwerk</div>
+    <div class="company">Elektro · Energie &amp; Gebäudetechnik</div>
+  </div>
+  <div class="meta">
+    <div class="meta-label">Zeitraum</div>
+    <div class="meta-val">${periodLabel}</div>
+    <div style="font-size:10px;color:#888;margin-top:4px">${customerLabel}</div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Zeit</th>
+      <th style="text-align:center">Pause</th>
+      <th style="text-align:right">Netto</th>
+      <th>Kunde</th>
+      <th>Standort</th>
+      <th>Tätigkeit</th>
+      <th>Beschreibung</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${rows}
+    <tr class="total-row">
+      <td colspan="3">Gesamt (${filtered.length} Einträge)</td>
+      <td style="text-align:right">${totalH}h ${String(totalM).padStart(2,'0')}m</td>
+      <td colspan="4"></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="summary">
+  <div class="summary-item">
+    <div class="summary-label">Gesamtstunden</div>
+    <div class="summary-val">${totalH}h ${String(totalM).padStart(2,'0')}m</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">Einträge</div>
+    <div class="summary-val">${filtered.length}</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">Zeitraum</div>
+    <div class="summary-val" style="font-size:13px">${periodLabel}</div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>Erstellt mit Zeitwerk · ${new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+  <span>PHOENYXZZZ · Elektro · Energie &amp; Gebäudetechnik</span>
+</div>
+
+<script>window.onload = () => window.print();<\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 }
 
 // ============================================================
@@ -2675,6 +2831,19 @@ if (syncToken && syncGistId) {
 setInterval(() => {
   if (syncToken && syncGistId && !syncBusy) syncPull();
 }, 2 * 60 * 1000);
+
+// ============================================================
+//  SERVICE WORKER REGISTRIERUNG
+// ============================================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'UPDATE_AVAILABLE') {
+      const banner = document.getElementById('updateBanner');
+      if (banner) banner.classList.add('visible');
+    }
+  });
+}
 
 // ============================================================
 //  EDIT ENTRY MODAL
