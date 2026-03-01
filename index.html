@@ -1162,7 +1162,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v31</div>
+<div class="version-badge">v32</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -1331,6 +1331,14 @@
         <div class="mehr-item-text">
           <div class="mehr-title">Stammdaten</div>
           <div class="mehr-sub">Kunden, Standorte, PIN-Schutz</div>
+        </div>
+        <span class="mehr-chevron">›</span>
+      </button>
+      <button class="mehr-item" id="mehrBenutzerItem" onclick="showPage('benutzer')" style="display:none">
+        <span class="mehr-icon">👤</span>
+        <div class="mehr-item-text">
+          <div class="mehr-title">Benutzer</div>
+          <div class="mehr-sub">Mitarbeiter anlegen &amp; verwalten</div>
         </div>
         <span class="mehr-chevron">›</span>
       </button>
@@ -1726,6 +1734,27 @@
     </div>
   </div>
 
+  <div id="page-benutzer" class="page">
+    <div class="panel">
+      <div class="panel-title">Benutzer anlegen</div>
+      <div style="display:flex;flex-direction:column;gap:0.6rem">
+        <input type="text" id="newUserCode" placeholder="Code (z.B. thomas)" autocapitalize="none" autocomplete="off" style="text-transform:lowercase">
+        <input type="text" id="newUserName" placeholder="Name (z.B. Thomas)" autocomplete="off">
+        <select id="newUserRole">
+          <option value="worker">Mitarbeiter</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button class="btn-primary" onclick="addUser()">➕ Benutzer anlegen</button>
+      </div>
+      <div id="addUserError" style="color:var(--red);font-size:0.72rem;margin-top:0.5rem;display:none"></div>
+      <div id="addUserSuccess" style="color:var(--green);font-size:0.72rem;margin-top:0.5rem;display:none"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Alle Benutzer</div>
+      <div id="benutzerList"><div style="color:var(--muted);padding:1rem 0;text-align:center">Lade…</div></div>
+    </div>
+  </div>
+
   <div id="page-team" class="page">
     <div class="panel">
       <div class="panel-title">Team-Übersicht</div>
@@ -1781,7 +1810,7 @@ load();
 //  NAVIGATION
 // ============================================================
 // Seiten die unter "Mehr" fallen → bnav-mehr bleibt aktiv
-const MEHR_PAGES = new Set(['zeiterfassung','auswertung','stammdaten','sync','team']);
+const MEHR_PAGES = new Set(['zeiterfassung','auswertung','stammdaten','sync','team','benutzer']);
 
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1803,6 +1832,7 @@ function showPage(id) {
   if (id === 'eintraege')  { populateFilterSelects(); renderEntries(); }
   if (id === 'sync')       { renderSyncPage(); }
   if (id === 'team')       { renderTeamPage(); }
+  if (id === 'benutzer')   { renderBenutzerPage(); }
   if (id === 'uebersicht') { renderUebersicht(); }
   if (id === 'auswertung') { populateStatsMonths(); renderStats(); }
   if (id === 'stammdaten') { renderStammdaten(); updatePinSettingsUI(); }
@@ -3148,8 +3178,57 @@ function updateAdminUI() {
   const isAdmin = currentUser?.role === 'admin';
   const teamTab = document.getElementById('teamTab');
   const bnavTeam = document.getElementById('bnav-team');
+  const benutzerItem = document.getElementById('mehrBenutzerItem');
   if (teamTab) teamTab.style.display = isAdmin ? '' : 'none';
   if (bnavTeam) bnavTeam.style.display = isAdmin ? '' : 'none';
+  if (benutzerItem) benutzerItem.style.display = isAdmin ? '' : 'none';
+}
+
+async function renderBenutzerPage() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  const sb = getSupabase();
+  const container = document.getElementById('benutzerList');
+  container.innerHTML = '<div style="color:var(--muted);padding:1rem 0;text-align:center">Lade…</div>';
+  const { data: users, error } = await sb.from('profiles').select('*').order('name');
+  if (error) { container.innerHTML = `<div style="color:var(--red)">${error.message}</div>`; return; }
+  container.innerHTML = users.map(u => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:500">${u.name}</div>
+        <div style="font-size:0.72rem;color:var(--muted)">Code: <code>${u.code}</code> · ${u.role === 'admin' ? 'Admin' : 'Mitarbeiter'}</div>
+      </div>
+      ${u.id !== currentUser.id ? `<button class="btn-danger" style="padding:0.3rem 0.6rem;font-size:0.72rem" onclick="deleteUser('${u.id}','${u.name}')">✕</button>` : '<span style="font-size:0.72rem;color:var(--muted)">Du</span>'}
+    </div>`).join('');
+}
+
+async function addUser() {
+  const code = (document.getElementById('newUserCode').value || '').trim().toLowerCase();
+  const name = (document.getElementById('newUserName').value || '').trim();
+  const role = document.getElementById('newUserRole').value;
+  const err = document.getElementById('addUserError');
+  const ok  = document.getElementById('addUserSuccess');
+  err.style.display = 'none'; ok.style.display = 'none';
+  if (!code || !name) { err.textContent = 'Bitte Code und Name eingeben.'; err.style.display = ''; return; }
+  const sb = getSupabase();
+  const { error } = await sb.from('profiles').insert({ code, name, role });
+  if (error) {
+    err.textContent = error.message.includes('unique') ? `Code "${code}" ist bereits vergeben.` : error.message;
+    err.style.display = '';
+  } else {
+    ok.textContent = `✓ ${name} wurde angelegt. Code: ${code}`;
+    ok.style.display = '';
+    document.getElementById('newUserCode').value = '';
+    document.getElementById('newUserName').value = '';
+    renderBenutzerPage();
+  }
+}
+
+async function deleteUser(id, name) {
+  if (!confirm(`${name} wirklich löschen? Alle Einträge dieser Person werden ebenfalls gelöscht.`)) return;
+  const sb = getSupabase();
+  const { error } = await sb.from('profiles').delete().eq('id', id);
+  if (error) { alert('Fehler: ' + error.message); return; }
+  renderBenutzerPage();
 }
 
 async function renderTeamPage() {
