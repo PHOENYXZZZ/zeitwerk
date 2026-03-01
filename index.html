@@ -1162,7 +1162,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v32</div>
+<div class="version-badge">v33</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -3034,10 +3034,18 @@ async function loginWithCode() {
   try {
     const { data: profile, error } = await sb.from('profiles').select('*').eq('code', code).single();
     if (error || !profile) throw new Error('Unbekannter Code – bitte Administrator kontaktieren');
+    const previousUserId = localStorage.getItem('blitz_user_id');
     currentUser = { id: profile.id, code: profile.code, name: profile.name, role: profile.role };
     localStorage.setItem('blitz_user_code', code);
     localStorage.setItem('blitz_user_id', profile.id);
-    if (data.entries.length > 0 || data.customers.length > 0) await syncPush();
+    if (previousUserId === profile.id && (data.entries.length > 0 || data.customers.length > 0)) {
+      // Gleicher User → Offline-Einträge hochladen
+      await syncPush();
+    } else if (previousUserId !== profile.id) {
+      // Anderer User → lokalen Cache leeren um Datenvermischung zu verhindern
+      data = { entries: [], customers: [], locations: [], deletedIds: [] };
+      localStorage.setItem('zeitwerk_v2', JSON.stringify(data));
+    }
     await syncPull();
     setupRealtimeSync();
     updateAdminUI();
@@ -3054,12 +3062,15 @@ async function loginWithCode() {
 }
 
 function logout() {
-  if (!confirm('Abmelden? Lokale Daten bleiben erhalten.')) return;
+  if (!confirm('Abmelden?')) return;
   const sb = getSupabase();
   if (sb && _realtimeChannel) { sb.removeChannel(_realtimeChannel); _realtimeChannel = null; }
   currentUser = null;
   localStorage.removeItem('blitz_user_code');
   localStorage.removeItem('blitz_user_id');
+  // Lokalen Cache leeren damit beim nächsten Login keine fremden Daten auftauchen
+  data = { entries: [], customers: [], locations: [], deletedIds: [] };
+  localStorage.setItem('zeitwerk_v2', JSON.stringify(data));
   setSyncStatus('idle', 'Nicht angemeldet');
   updateSyncTab();
   renderSyncPage();
