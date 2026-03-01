@@ -1162,7 +1162,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v29</div>
+<div class="version-badge">v30</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -2851,43 +2851,22 @@ function exportPDF() {
 // ============================================================
 //  SUPABASE SYNC
 // ============================================================
+const SUPABASE_URL = 'https://iebdwwrdyipbyrkgikud.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_lACmpenof0zSNdiEW_5YQw_eiqoY-OU';
+
 let _supabaseClient = null;
-let supabaseUrl = localStorage.getItem('blitz_supabase_url') || '';
-let supabaseAnonKey = localStorage.getItem('blitz_supabase_key') || '';
 let currentUser = null;  // { id, code, name, role }
 let syncBusy = false;
 let syncPushTimer = null;
 let _realtimeChannel = null;
 
 function getSupabase() {
-  if (!_supabaseClient && supabaseUrl && supabaseAnonKey) {
-    _supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+  if (!_supabaseClient) {
+    _supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
   return _supabaseClient;
 }
 
-function saveSupabaseConfig() {
-  const url = (document.getElementById('supabaseUrlInput').value || '').trim().replace(/\/$/, '');
-  const key = (document.getElementById('supabaseKeyInput').value || '').trim();
-  const err = document.getElementById('supabaseConfigError');
-  err.style.display = 'none';
-  if (!url || !key) { err.textContent = 'Bitte beide Felder ausfüllen.'; err.style.display = ''; return; }
-  if (!url.startsWith('https://')) { err.textContent = 'URL muss mit https:// beginnen.'; err.style.display = ''; return; }
-  supabaseUrl = url;
-  supabaseAnonKey = key;
-  _supabaseClient = null;
-  localStorage.setItem('blitz_supabase_url', url);
-  localStorage.setItem('blitz_supabase_key', key);
-  renderSyncPage();
-}
-
-function resetSupabaseConfig() {
-  if (!confirm('Supabase-Konfiguration zurücksetzen?')) return;
-  localStorage.removeItem('blitz_supabase_url');
-  localStorage.removeItem('blitz_supabase_key');
-  supabaseUrl = ''; supabaseAnonKey = ''; _supabaseClient = null;
-  renderSyncPage();
-}
 
 function showSqlScript() {
   const el = document.getElementById('sqlScriptOut');
@@ -2948,7 +2927,7 @@ alter publication supabase_realtime add table entries;`;
   const sb = getSupabase();
   const savedCode = localStorage.getItem('blitz_user_code');
   const savedId   = localStorage.getItem('blitz_user_id');
-  if (!sb || !savedCode || !savedId) { renderSyncPage(); return; }
+  if (!savedCode || !savedId) { renderSyncPage(); return; }
   sb.from('profiles').select('*').eq('code', savedCode).single().then(({ data: profile }) => {
     if (profile) {
       currentUser = { id: profile.id, code: profile.code, name: profile.name, role: profile.role };
@@ -2999,15 +2978,13 @@ function renderSyncPage() {
   const setupSupa = document.getElementById('syncSetupSupabase');
   const login = document.getElementById('syncLogin');
   const connected = document.getElementById('syncConnected');
-  if (!setupSupa) return;
-  if (!supabaseUrl || !supabaseAnonKey) {
-    setupSupa.style.display = ''; login.style.display = 'none'; connected.style.display = 'none';
-    setSyncStatus('idle', 'Supabase nicht eingerichtet');
-  } else if (!currentUser) {
-    setupSupa.style.display = 'none'; login.style.display = ''; connected.style.display = 'none';
+  if (!login) return;
+  if (setupSupa) setupSupa.style.display = 'none'; // immer versteckt
+  if (!currentUser) {
+    login.style.display = ''; connected.style.display = 'none';
     setSyncStatus('idle', 'Nicht angemeldet');
   } else {
-    setupSupa.style.display = 'none'; login.style.display = 'none'; connected.style.display = '';
+    login.style.display = 'none'; connected.style.display = '';
     document.getElementById('syncUserName').textContent = currentUser.name;
     document.getElementById('syncUserRole').textContent = currentUser.role === 'admin' ? 'Chef / Admin' : 'Mitarbeiter';
     document.getElementById('syncEntryCount').textContent = data.entries.length;
