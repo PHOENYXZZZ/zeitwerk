@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Blitz">
-<title>Blitz – Zeiterfassung</title>
+<meta name="apple-mobile-web-app-title" content="BLITZ">
+<title>BLITZ – Zeiterfassung</title>
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
 <style>
@@ -77,7 +77,8 @@
     font-weight: 700;
     font-size: 2.6rem;
     color: var(--accent);
-    letter-spacing: -1px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
   }
   .subtitle { color: var(--muted); font-size: 0.75rem; }
   .version-badge {
@@ -1084,7 +1085,7 @@
 
 <!-- PIN LOCK OVERLAY -->
 <div class="pin-overlay hidden" id="pinOverlay">
-  <div class="pin-logo">Blitz</div>
+  <div class="pin-logo">BLITZ</div>
   <div class="pin-subtitle">Elektro · Energie & Gebäudetechnik</div>
   <div class="pin-mode-label" id="pinModeLabel">PIN eingeben</div>
   <div class="pin-dots" id="pinDots">
@@ -1111,11 +1112,11 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v17</div>
+<div class="version-badge">v18</div>
 <div class="container" id="appContainer">
 
   <header>
-    <h1>Blitz</h1>
+    <h1>BLITZ</h1>
     <span class="subtitle">Elektro · Energie & Gebäudetechnik</span>
     <span id="headerSyncDot" style="margin-left:auto;font-size:0.65rem;color:var(--muted);cursor:pointer" onclick="showPage('sync');document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('syncTab').classList.add('active')" title="Sync-Status"></span>
   </header>
@@ -1806,7 +1807,7 @@ function updateTimerDisplay() {
   const breakInfo = onBreak ? ' <span style="color:var(--accent2)">[Pause]</span>' : '';
   document.getElementById('timerDisplay').innerHTML =
     `<span class="status-dot"></span>${pad(h)}:${pad(m)}:${pad(s)}${breakInfo}`;
-  document.title = `⏱ ${pad(h)}:${pad(m)}:${pad(s)} – Blitz`;
+  document.title = `⏱ ${pad(h)}:${pad(m)}:${pad(s)} – BLITZ`;
 }
 
 function startTimer() {
@@ -1867,7 +1868,7 @@ function stopTimer() {
   localStorage.removeItem('zt_start');
   localStorage.removeItem('zt_break');
   localStorage.removeItem('zt_breakstart');
-  document.title = 'Blitz – Zeiterfassung';
+  document.title = 'BLITZ – Zeiterfassung';
   document.getElementById('timerDisplay').textContent = '';
   document.getElementById('btnStart').style.display = '';
   document.getElementById('btnBreak').style.display = 'none';
@@ -2661,7 +2662,7 @@ function exportPDF() {
 <body>
 <div class="header">
   <div>
-    <div class="logo">Blitz</div>
+    <div class="logo">BLITZ</div>
     <div class="company">Elektro · Energie &amp; Gebäudetechnik</div>
   </div>
   <div class="meta">
@@ -2710,7 +2711,7 @@ function exportPDF() {
 </div>
 
 <div class="footer">
-  <span>Erstellt mit Blitz · ${new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+  <span>Erstellt mit BLITZ · ${new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
   <span>PHOENYXZZZ · Elektro · Energie &amp; Gebäudetechnik</span>
 </div>
 
