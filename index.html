@@ -214,10 +214,40 @@
   .section-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
   .week-summary { font-size: 0.75rem; color: var(--accent); }
 
-  .filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
-  .filter-row select { max-width: 200px; font-size: 0.75rem; }
+  /* FILTER BAR */
+  .filter-bar { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; }
+  .filter-search { flex: 1; font-size: 0.8rem; }
+  .filter-toggle-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); font-family: 'DM Mono', monospace;
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px;
+    padding: 0 1rem; border-radius: 2px; cursor: pointer; white-space: nowrap;
+    min-height: 38px; transition: all 0.15s;
+  }
+  .filter-toggle-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,197,71,0.08); }
+  .filter-panel { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+  .filter-panel select { max-width: 200px; font-size: 0.75rem; }
+  .filter-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; min-height: 0; }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: rgba(232,197,71,0.1); border: 1px solid var(--accent);
+    color: var(--accent); border-radius: 20px;
+    font-size: 0.62rem; padding: 0.2rem 0.5rem 0.2rem 0.75rem;
+    font-family: 'DM Mono', monospace; letter-spacing: 0.5px;
+  }
+  .filter-chip button { background: none; border: none; color: var(--accent); font-size: 0.8rem; cursor: pointer; padding: 0; min-height: unset; line-height: 1; }
 
-  .entries-list { display: flex; flex-direction: column; gap: 0.4rem; }
+  /* DAY GROUPS */
+  .day-group { margin-bottom: 1.5rem; }
+  .day-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 0 0.1rem 0.4rem; border-bottom: 1px solid var(--border); margin-bottom: 0.4rem;
+  }
+  .day-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+  .day-total { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 300; color: var(--accent); }
+  .entries-summary { font-size: 0.62rem; color: var(--muted); text-align: right; margin-bottom: 0.75rem; letter-spacing: 0.5px; }
+
+  .entries-list { display: flex; flex-direction: column; gap: 0; }
 
   .entry {
     background: var(--surface);
@@ -604,7 +634,7 @@
     .entry-duration, .stat-value, .cb-hours { color: #333; }
     .panel { border: 1px solid #ccc; }
     h1 { color: #333; }
-    .tabs, .controls, .filter-row { display: none; }
+    .tabs, .controls, .filter-bar, .filter-panel, .filter-chips, .entries-summary { display: none; }
   }
 
   /* ============================================================
@@ -794,8 +824,8 @@
     .edit-modal-actions button { flex: 1; min-height: 50px; }
 
     /* Filter row: scrollable */
-    .filter-row { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; gap: 0.4rem; }
-    .filter-row select { min-width: 130px; font-size: 0.85rem; }
+    .filter-panel { flex-direction: column; }
+    .filter-panel select { max-width: 100%; font-size: 0.85rem; }
 
     /* Export row */
     .export-row { flex-direction: column; gap: 0.4rem; }
@@ -1444,11 +1474,16 @@
   <div id="page-eintraege" class="page">
 
     <div class="section-header">
-      <span class="section-title">Alle Einträge</span>
+      <span class="section-title">Einträge</span>
       <span class="week-summary" id="weekSummary"></span>
     </div>
 
-    <div class="filter-row no-print">
+    <div class="filter-bar no-print">
+      <input type="search" id="filterSearch" class="filter-search" placeholder="Suchen…" oninput="renderEntries()">
+      <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">Filter</button>
+    </div>
+
+    <div class="filter-panel no-print" id="filterPanel" style="display:none">
       <select id="filterMonth" onchange="renderEntries()">
         <option value="">Alle Monate</option>
       </select>
@@ -1466,12 +1501,15 @@
       </select>
     </div>
 
-    <div class="export-row no-print">
+    <div class="filter-chips no-print" id="filterChips"></div>
+    <div class="entries-summary no-print" id="entriesSummary"></div>
+
+    <div class="entries-list" id="entriesList"></div>
+
+    <div class="export-row no-print" id="exportRow" style="margin-top:1.5rem;display:none">
       <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
       <button class="btn-ghost" onclick="exportPDF()">⬇ PDF Stundenzettel</button>
     </div>
-
-    <div class="entries-list" id="entriesList"></div>
   </div>
 
   <!-- =================== ÜBERSICHT =================== -->
@@ -1948,15 +1986,49 @@ function taskClass(task) {
 //  RENDER ENTRIES
 // ============================================================
 function getFilteredEntries() {
-  const month = document.getElementById('filterMonth')?.value || '';
+  const month    = document.getElementById('filterMonth')?.value || '';
   const customer = document.getElementById('filterCustomer')?.value || '';
-  const task = document.getElementById('filterTask')?.value || '';
+  const task     = document.getElementById('filterTask')?.value || '';
+  const search   = (document.getElementById('filterSearch')?.value || '').toLowerCase().trim();
   return data.entries.filter(e => {
     if (month && !e.date.startsWith(month)) return false;
-    if (customer && e.customerId !== customer) return false;
+    if (customer && String(e.customerId) !== String(customer)) return false;
     if (task && e.task !== task) return false;
+    if (search) {
+      const hay = [e.customerName, e.locationName, e.title, e.note, e.task].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
     return true;
   });
+}
+
+function renderEntryCard(e) {
+  const dur = calcDuration(e.from, e.to, e.breakMin);
+  const breakInfo = e.breakMin > 0 ? `<div class="entry-break">${e.breakMin}min Pause</div>` : '';
+  const titleStr = e.title ? `<div class="entry-title">${e.title}</div>` : '';
+  const noteStr = e.note ? `<div class="entry-desc">${e.note}</div>` : '';
+  const taskBadge = e.task ? `<span class="entry-task ${taskClass(e.task)}">${e.task}</span>` : '';
+  const loc = e.locationName && e.locationName !== '– Standort wählen –' ? e.locationName : '';
+  const cust = e.customerName && e.customerName !== '– Kunde wählen –' ? e.customerName : '–';
+  return `
+    <div class="entry" id="entry-${e.id}">
+      <div class="entry-left">
+        <div class="entry-times">${e.from} <span>→</span> ${e.to}</div>
+      </div>
+      <div class="entry-meta">
+        <div class="entry-customer">${cust}${loc ? ` <span style="color:var(--muted)">·</span> <span class="entry-location">${loc}</span>` : ''}</div>
+        ${taskBadge}${titleStr}${noteStr}
+      </div>
+      <div class="entry-right">
+        <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
+        ${breakInfo}
+      </div>
+      <div class="entry-actions">
+        <button class="entry-dup"    onclick="duplicateEntry(${e.id})"  title="Kopieren">📋 <span class="btn-label">Kopieren</span></button>
+        <button class="entry-edit"   onclick="editEntry(${e.id})"       title="Bearbeiten">✎ <span class="btn-label">Bearbeiten</span></button>
+        <button class="entry-delete" data-delete-id="${e.id}" onclick="deleteEntry(${e.id})" title="Löschen">× <span class="btn-label">Löschen</span></button>
+      </div>
+    </div>`;
 }
 
 function renderEntries() {
@@ -1980,44 +2052,78 @@ function renderEntries() {
   const el = document.getElementById('weekSummary');
   if (el) el.innerHTML = `Diese Woche: ${fmtDur(weekMins)} &nbsp;<span style="color:${diffCol};font-size:0.7rem">${diffStr}</span>`;
 
+  // Filter chips + summary
+  renderFilterChips();
+  const totalMins = filtered.reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
+  const sumEl = document.getElementById('entriesSummary');
+  if (sumEl) sumEl.textContent = filtered.length
+    ? `${filtered.length} Einträge · ${fmtDur(totalMins)}`
+    : '';
+  const exportRow = document.getElementById('exportRow');
+  if (exportRow) exportRow.style.display = filtered.length ? '' : 'none';
+
   if (filtered.length === 0) {
     list.innerHTML = '<div class="empty-state">Keine Einträge gefunden.</div>';
     return;
   }
 
-  list.innerHTML = filtered.map(e => {
-    const dur = calcDuration(e.from, e.to, e.breakMin);
-    const dateStr = new Date(e.date + 'T12:00').toLocaleDateString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit' });
-    const breakInfo = e.breakMin > 0 ? `<div class="entry-break">${e.breakMin}min Pause</div>` : '';
-    const titleStr = e.title ? `<div class="entry-title">${e.title}</div>` : '';
-    const noteStr = e.note ? `<div class="entry-desc">${e.note}</div>` : '';
-    const taskBadge = e.task ? `<span class="entry-task ${taskClass(e.task)}">${e.task}</span>` : '';
-    const loc = e.locationName && e.locationName !== '– Standort wählen –' ? e.locationName : '';
-    const cust = e.customerName && e.customerName !== '– Kunde wählen –' ? e.customerName : '–';
+  // Group by date
+  const groups = {};
+  filtered.forEach(e => { if (!groups[e.date]) groups[e.date] = []; groups[e.date].push(e); });
+  const todayStr = isoDate(new Date());
+  const yesterdayStr = isoDate(new Date(Date.now() - 86400000));
+  const weekdays = ['So','Mo','Di','Mi','Do','Fr','Sa'];
 
+  list.innerHTML = Object.keys(groups).sort().reverse().map(date => {
+    const entries = groups[date];
+    const dayMins = entries.reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
+    const d = new Date(date + 'T12:00');
+    const dateLabel = date === todayStr ? 'Heute'
+      : date === yesterdayStr ? 'Gestern'
+      : `${weekdays[d.getDay()]} · ${d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' })}`;
     return `
-      <div class="entry" id="entry-${e.id}">
-        <div class="entry-left">
-          <div class="entry-date">${dateStr}</div>
-          <div class="entry-times">${e.from} <span>→</span> ${e.to}</div>
+      <div class="day-group">
+        <div class="day-header">
+          <span class="day-label">${dateLabel}</span>
+          <span class="day-total">${fmtDur(dayMins)}</span>
         </div>
-        <div class="entry-meta">
-          <div class="entry-customer">${cust}${loc ? ` <span style="color:var(--muted)">·</span> <span class="entry-location">${loc}</span>` : ''}</div>
-          ${taskBadge}
-          ${titleStr}
-          ${noteStr}
-        </div>
-        <div class="entry-right">
-          <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
-          ${breakInfo}
-        </div>
-        <div class="entry-actions">
-          <button class="entry-dup"    onclick="duplicateEntry(${e.id})"  title="Kopieren">📋 <span class="btn-label">Kopieren</span></button>
-          <button class="entry-edit"   onclick="editEntry(${e.id})"       title="Bearbeiten">✎ <span class="btn-label">Bearbeiten</span></button>
-          <button class="entry-delete" data-delete-id="${e.id}" onclick="deleteEntry(${e.id})" title="Löschen">× <span class="btn-label">Löschen</span></button>
+        <div style="display:flex;flex-direction:column;gap:0.4rem">
+          ${entries.map(renderEntryCard).join('')}
         </div>
       </div>`;
   }).join('');
+}
+
+function renderFilterChips() {
+  const container = document.getElementById('filterChips');
+  if (!container) return;
+  const mSel = document.getElementById('filterMonth');
+  const cSel = document.getElementById('filterCustomer');
+  const tSel = document.getElementById('filterTask');
+  const search = document.getElementById('filterSearch')?.value?.trim();
+  const chips = [];
+  if (mSel?.value) chips.push(`<span class="filter-chip">${mSel.options[mSel.selectedIndex].text} <button onclick="clearFilter('month')">×</button></span>`);
+  if (cSel?.value) chips.push(`<span class="filter-chip">${cSel.options[cSel.selectedIndex].text} <button onclick="clearFilter('customer')">×</button></span>`);
+  if (tSel?.value) chips.push(`<span class="filter-chip">${tSel.value} <button onclick="clearFilter('task')">×</button></span>`);
+  if (search) chips.push(`<span class="filter-chip">„${search}" <button onclick="clearFilter('search')">×</button></span>`);
+  container.innerHTML = chips.join('');
+  const btn = document.getElementById('filterToggleBtn');
+  const active = [mSel?.value, cSel?.value, tSel?.value].filter(Boolean).length;
+  if (btn) { btn.textContent = active ? `Filter (${active})` : 'Filter'; btn.classList.toggle('active', active > 0); }
+}
+
+function clearFilter(type) {
+  if (type === 'month')    document.getElementById('filterMonth').value = '';
+  if (type === 'customer') document.getElementById('filterCustomer').value = '';
+  if (type === 'task')     document.getElementById('filterTask').value = '';
+  if (type === 'search')   document.getElementById('filterSearch').value = '';
+  renderEntries();
+}
+
+function toggleFilterPanel() {
+  const panel = document.getElementById('filterPanel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? '' : 'none';
 }
 
 function populateFilterSelects() {
