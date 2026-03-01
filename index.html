@@ -284,6 +284,25 @@
     font-style: italic; line-height: 1.5; white-space: pre-wrap;
   }
 
+  /* TRANSFER BUTTON */
+  .transfer-btn {
+    background: none; border: 1.5px solid var(--border); color: var(--border);
+    border-radius: 50%; width: 28px; height: 28px; font-size: 0.8rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    margin: 0.35rem auto 0; transition: all 0.2s; min-height: unset; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .transfer-btn:hover { border-color: var(--green); color: var(--green); }
+  .transfer-btn.done { background: rgba(107,207,151,0.15); border-color: var(--green); color: var(--green); }
+  .transfer-btn:active { transform: scale(0.88); }
+  .day-pending {
+    font-size: 0.55rem; color: var(--accent2); letter-spacing: 1px;
+    background: rgba(196,149,106,0.12); border: 1px solid var(--accent2);
+    border-radius: 10px; padding: 0.1rem 0.45rem; margin-left: 0.5rem;
+    text-transform: uppercase;
+  }
+  .entry.transferred { opacity: 0.55; }
+
   /* STUNDEN-SALDO */
   .saldo-panel {
     display: flex; gap: 1.5rem; flex-wrap: wrap;
@@ -1499,6 +1518,11 @@
         <option value="Planung">Planung</option>
         <option value="Sonstiges">Sonstiges</option>
       </select>
+      <select id="filterTransferred" onchange="renderEntries()">
+        <option value="">Alle Berichte</option>
+        <option value="pending">⏳ Ausstehend</option>
+        <option value="done">✓ Übertragen</option>
+      </select>
     </div>
 
     <div class="filter-chips no-print" id="filterChips"></div>
@@ -1986,14 +2010,17 @@ function taskClass(task) {
 //  RENDER ENTRIES
 // ============================================================
 function getFilteredEntries() {
-  const month    = document.getElementById('filterMonth')?.value || '';
-  const customer = document.getElementById('filterCustomer')?.value || '';
-  const task     = document.getElementById('filterTask')?.value || '';
-  const search   = (document.getElementById('filterSearch')?.value || '').toLowerCase().trim();
+  const month       = document.getElementById('filterMonth')?.value || '';
+  const customer    = document.getElementById('filterCustomer')?.value || '';
+  const task        = document.getElementById('filterTask')?.value || '';
+  const transferred = document.getElementById('filterTransferred')?.value || '';
+  const search      = (document.getElementById('filterSearch')?.value || '').toLowerCase().trim();
   return data.entries.filter(e => {
     if (month && !e.date.startsWith(month)) return false;
     if (customer && String(e.customerId) !== String(customer)) return false;
     if (task && e.task !== task) return false;
+    if (transferred === 'pending' && e.transferred) return false;
+    if (transferred === 'done' && !e.transferred) return false;
     if (search) {
       const hay = [e.customerName, e.locationName, e.title, e.note, e.task].join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
@@ -2011,7 +2038,7 @@ function renderEntryCard(e) {
   const loc = e.locationName && e.locationName !== '– Standort wählen –' ? e.locationName : '';
   const cust = e.customerName && e.customerName !== '– Kunde wählen –' ? e.customerName : '–';
   return `
-    <div class="entry" id="entry-${e.id}">
+    <div class="entry${e.transferred ? ' transferred' : ''}" id="entry-${e.id}">
       <div class="entry-left">
         <div class="entry-times">${e.from} <span>→</span> ${e.to}</div>
       </div>
@@ -2022,6 +2049,9 @@ function renderEntryCard(e) {
       <div class="entry-right">
         <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
         ${breakInfo}
+        <button class="transfer-btn ${e.transferred ? 'done' : ''}" data-transfer-id="${e.id}"
+          onclick="toggleTransferred(${e.id})"
+          title="${e.transferred ? 'Als ausstehend markieren' : 'Als übertragen markieren'}">✓</button>
       </div>
       <div class="entry-actions">
         <button class="entry-dup"    onclick="duplicateEntry(${e.id})"  title="Kopieren">📋 <span class="btn-label">Kopieren</span></button>
@@ -2081,10 +2111,13 @@ function renderEntries() {
     const dateLabel = date === todayStr ? 'Heute'
       : date === yesterdayStr ? 'Gestern'
       : `${weekdays[d.getDay()]} · ${d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' })}`;
+    const pendingCount = entries.filter(e => !e.transferred).length;
+    const pendingBadge = pendingCount > 0
+      ? `<span class="day-pending">${pendingCount} offen</span>` : '';
     return `
       <div class="day-group">
         <div class="day-header">
-          <span class="day-label">${dateLabel}</span>
+          <span class="day-label">${dateLabel}${pendingBadge}</span>
           <span class="day-total">${fmtDur(dayMins)}</span>
         </div>
         <div style="display:flex;flex-direction:column;gap:0.4rem">
@@ -2092,6 +2125,24 @@ function renderEntries() {
         </div>
       </div>`;
   }).join('');
+}
+
+function toggleTransferred(id) {
+  const e = data.entries.find(x => x.id === id);
+  if (!e) return;
+  e.transferred = !e.transferred;
+  save();
+  syncPush();
+  // Update in-place — no full re-render needed
+  const btn = document.querySelector(`[data-transfer-id="${id}"]`);
+  if (btn) {
+    btn.classList.toggle('done', e.transferred);
+    btn.title = e.transferred ? 'Als ausstehend markieren' : 'Als übertragen markieren';
+  }
+  const entryEl = document.getElementById(`entry-${id}`);
+  if (entryEl) entryEl.classList.toggle('transferred', e.transferred);
+  // Refresh day-header pending badge
+  renderEntries();
 }
 
 function renderFilterChips() {
@@ -2102,21 +2153,24 @@ function renderFilterChips() {
   const tSel = document.getElementById('filterTask');
   const search = document.getElementById('filterSearch')?.value?.trim();
   const chips = [];
+  const trSel = document.getElementById('filterTransferred');
   if (mSel?.value) chips.push(`<span class="filter-chip">${mSel.options[mSel.selectedIndex].text} <button onclick="clearFilter('month')">×</button></span>`);
   if (cSel?.value) chips.push(`<span class="filter-chip">${cSel.options[cSel.selectedIndex].text} <button onclick="clearFilter('customer')">×</button></span>`);
   if (tSel?.value) chips.push(`<span class="filter-chip">${tSel.value} <button onclick="clearFilter('task')">×</button></span>`);
+  if (trSel?.value) chips.push(`<span class="filter-chip">${trSel.options[trSel.selectedIndex].text} <button onclick="clearFilter('transferred')">×</button></span>`);
   if (search) chips.push(`<span class="filter-chip">„${search}" <button onclick="clearFilter('search')">×</button></span>`);
   container.innerHTML = chips.join('');
   const btn = document.getElementById('filterToggleBtn');
-  const active = [mSel?.value, cSel?.value, tSel?.value].filter(Boolean).length;
+  const active = [mSel?.value, cSel?.value, tSel?.value, trSel?.value].filter(Boolean).length;
   if (btn) { btn.textContent = active ? `Filter (${active})` : 'Filter'; btn.classList.toggle('active', active > 0); }
 }
 
 function clearFilter(type) {
-  if (type === 'month')    document.getElementById('filterMonth').value = '';
-  if (type === 'customer') document.getElementById('filterCustomer').value = '';
-  if (type === 'task')     document.getElementById('filterTask').value = '';
-  if (type === 'search')   document.getElementById('filterSearch').value = '';
+  if (type === 'month')       document.getElementById('filterMonth').value = '';
+  if (type === 'customer')    document.getElementById('filterCustomer').value = '';
+  if (type === 'task')        document.getElementById('filterTask').value = '';
+  if (type === 'transferred') document.getElementById('filterTransferred').value = '';
+  if (type === 'search')      document.getElementById('filterSearch').value = '';
   renderEntries();
 }
 
