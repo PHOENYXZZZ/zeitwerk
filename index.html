@@ -1589,7 +1589,7 @@ function stopTimer() {
   const note = document.getElementById('timerNote').value;
 
   addEntry({
-    date: startDate.toISOString().slice(0, 10),
+    date: isoDate(startDate),
     from: startDate.toTimeString().slice(0, 5),
     to: endDate.toTimeString().slice(0, 5),
     breakMin,
@@ -1702,7 +1702,7 @@ function renderEntries() {
   const today = new Date();
   const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
   const monday = new Date(today); monday.setDate(today.getDate() - dow);
-  const mondayStr = monday.toISOString().slice(0, 10);
+  const mondayStr = isoDate(monday);
   const weekMins = data.entries.filter(e => e.date >= mondayStr)
     .reduce((s, e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const weekSollM = getWeekSollMins(monday);
@@ -2936,7 +2936,7 @@ document.addEventListener('keydown', e => {
 // ============================================================
 //  INIT
 // ============================================================
-document.getElementById('manDate').value = new Date().toISOString().slice(0, 10);
+document.getElementById('manDate').value = isoDate(new Date());
 document.getElementById('wochensollInput').value = (WOCHENSOLL_MIN/60).toFixed(1);
 populateAllSelects();
 renderEntries();
@@ -2966,7 +2966,7 @@ setInterval(() => {
 function duplicateEntry(id) {
   const e = data.entries.find(x => x.id === id);
   if (!e) return;
-  const copy = { ...e, id: Date.now(), date: new Date().toISOString().slice(0, 10) };
+  const copy = { ...e, id: Date.now(), date: isoDate(new Date()) };
   data.entries.unshift(copy);
   save();
   renderEntries();
