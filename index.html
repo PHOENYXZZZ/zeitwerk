@@ -761,9 +761,6 @@
       font-size: 0.72rem;
       padding: 0;
     }
-    /* Swipe-Actions nur auf Mobile */
-    .swipe-wrapper { border-radius: 6px; }
-    .swipe-actions { display: flex; }
     .entry-duration { font-size: 1rem; }
     .entry-customer { font-size: 0.85rem; }
     .entry-title { font-size: 0.82rem; }
@@ -996,26 +993,6 @@
   .timer-banner-show { background: none; border: 1px solid var(--accent); color: var(--accent); }
   .timer-banner-stop { background: var(--red); border: 1px solid var(--red); color: #fff; }
 
-  /* SWIPE WRAPPER */
-  .swipe-wrapper { position: relative; overflow: hidden; }
-  .swipe-actions {
-    position: absolute; right: 0; top: 0; bottom: 0;
-    display: flex; transform: translateX(100%);
-    transition: transform 0.25s ease; z-index: 2;
-  }
-  .swipe-actions button {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 0.2rem;
-    width: 72px; border: none; border-radius: 0;
-    font-family: 'DM Mono', monospace; font-size: 0.58rem;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    cursor: pointer; min-height: unset; padding: 0;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .swipe-actions button span { font-size: 1.3rem; line-height: 1; }
-  .swipe-dup  { background: var(--blue);  color: #fff; }
-  .swipe-edit { background: var(--accent); color: #0f0e0b; }
-  .swipe-del  { background: var(--red);   color: #fff; }
   .entry-dup {
     background: none; border: none; color: var(--border);
     cursor: pointer; font-size: 1rem; padding: 0.2rem 0.3rem;
@@ -1044,9 +1021,8 @@
     text-transform: uppercase; letter-spacing: 1px;
   }
 
-  /* Desktop: bottom nav + swipe hidden */
+  /* Desktop: bottom nav hidden */
   .bottom-nav { display: none; }
-  .swipe-actions { display: none; }
 
   /* PIN LOCK SCREEN */
   .pin-overlay {
@@ -1743,6 +1719,7 @@ let data = {
 function load() {
   const saved = localStorage.getItem('zeitwerk_v2');
   if (saved) data = JSON.parse(saved);
+  data.deletedIds = data.deletedIds || [];
 }
 function save() { localStorage.setItem('zeitwerk_v2', JSON.stringify(data)); }
 
@@ -2011,32 +1988,25 @@ function renderEntries() {
     const cust = e.customerName && e.customerName !== '– Kunde wählen –' ? e.customerName : '–';
 
     return `
-      <div class="swipe-wrapper" id="sw-${e.id}">
-        <div class="swipe-actions">
-          <button class="swipe-dup"  onclick="duplicateEntry(${e.id})"><span>📋</span>Kopieren</button>
-          <button class="swipe-edit" onclick="closeSwipe();editEntry(${e.id})"><span>✎</span>Bearbeiten</button>
-          <button class="swipe-del"  onclick="deleteEntryDirect(${e.id})"><span>×</span>Löschen</button>
+      <div class="entry" id="entry-${e.id}">
+        <div class="entry-left">
+          <div class="entry-date">${dateStr}</div>
+          <div class="entry-times">${e.from} <span>→</span> ${e.to}</div>
         </div>
-        <div class="entry" id="entry-${e.id}">
-          <div class="entry-left">
-            <div class="entry-date">${dateStr}</div>
-            <div class="entry-times">${e.from} <span>→</span> ${e.to}</div>
-          </div>
-          <div class="entry-meta">
-            <div class="entry-customer">${cust}${loc ? ` <span style="color:var(--muted)">·</span> <span class="entry-location">${loc}</span>` : ''}</div>
-            ${taskBadge}
-            ${titleStr}
-            ${noteStr}
-          </div>
-          <div class="entry-right">
-            <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
-            ${breakInfo}
-          </div>
-          <div class="entry-actions">
-            <button class="entry-dup"    onclick="duplicateEntry(${e.id})"  title="Kopieren">📋 <span class="btn-label">Kopieren</span></button>
-            <button class="entry-edit"   onclick="editEntry(${e.id})"       title="Bearbeiten">✎ <span class="btn-label">Bearbeiten</span></button>
-            <button class="entry-delete" data-delete-id="${e.id}" onclick="deleteEntry(${e.id})" title="Löschen">× <span class="btn-label">Löschen</span></button>
-          </div>
+        <div class="entry-meta">
+          <div class="entry-customer">${cust}${loc ? ` <span style="color:var(--muted)">·</span> <span class="entry-location">${loc}</span>` : ''}</div>
+          ${taskBadge}
+          ${titleStr}
+          ${noteStr}
+        </div>
+        <div class="entry-right">
+          <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
+          ${breakInfo}
+        </div>
+        <div class="entry-actions">
+          <button class="entry-dup"    onclick="duplicateEntry(${e.id})"  title="Kopieren">📋 <span class="btn-label">Kopieren</span></button>
+          <button class="entry-edit"   onclick="editEntry(${e.id})"       title="Bearbeiten">✎ <span class="btn-label">Bearbeiten</span></button>
+          <button class="entry-delete" data-delete-id="${e.id}" onclick="deleteEntry(${e.id})" title="Löschen">× <span class="btn-label">Löschen</span></button>
         </div>
       </div>`;
   }).join('');
@@ -3001,11 +2971,15 @@ async function syncPull() {
 }
 
 function mergeData(local, remote) {
+  // Merge deletedIds: union of both sides (tombstones)
+  const deletedIds = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
   // Merge entries by id, remote wins on conflict (last-write-wins)
   const entryMap = {};
   [...(local.entries || []), ...(remote.entries || [])].forEach(e => {
     entryMap[e.id] = e; // remote overwrites local
   });
+  // Remove tombstoned entries — deletions always win
+  deletedIds.forEach(id => delete entryMap[id]);
   // Merge customers: union by id
   const custMap = {};
   [...(local.customers || []), ...(remote.customers || [])].forEach(c => { custMap[c.id] = c; });
@@ -3016,7 +2990,8 @@ function mergeData(local, remote) {
   return {
     entries: Object.values(entryMap).sort((a,b) => (b.date+b.from).localeCompare(a.date+a.from)),
     customers: Object.values(custMap),
-    locations: Object.values(locMap)
+    locations: Object.values(locMap),
+    deletedIds: [...deletedIds]
   };
 }
 
@@ -3225,7 +3200,6 @@ renderEntries();
 renderSaldo();
 updateSyncTab();
 initPinLock();
-initSwipe();
 initQuickEntry();
 
 // Auto-pull on startup if sync configured
@@ -3412,39 +3386,9 @@ function duplicateEntry(id) {
   save();
   renderEntries();
   renderSaldo();
-  closeSwipe();
   editEntry(copy.id); // Edit-Modal öffnen damit Datum angepasst werden kann
 }
 
-function deleteEntryDirect(id) {
-  data.entries = data.entries.filter(e => e.id !== id);
-  save();
-  renderEntries();
-  renderSaldo();
-  closeSwipe();
-}
-
-function deleteEntry(id) {
-  const btns = document.querySelectorAll(`button[data-delete-id="${id}"]`);
-  if (!btns.length) return;
-  if (_deleteTimers[id]) {
-    clearTimeout(_deleteTimers[id]);
-    delete _deleteTimers[id];
-    data.entries = data.entries.filter(e => e.id !== id);
-    save();
-    renderEntries();
-    renderSaldo();
-  } else {
-    btns.forEach(btn => { btn.classList.add('confirm'); btn.textContent = 'Sicher?'; });
-    _deleteTimers[id] = setTimeout(() => {
-      delete _deleteTimers[id];
-      document.querySelectorAll(`button[data-delete-id="${id}"]`).forEach(b => {
-        b.classList.remove('confirm');
-        b.innerHTML = '× <span class="btn-label">Löschen</span>';
-      });
-    }, 2500);
-  }
-}
 
 // ============================================================
 //  TIMER BANNER (Page Visibility)
@@ -3471,65 +3415,6 @@ document.addEventListener('visibilitychange', () => {
     setTimeout(hideTimerBanner, 5000); // Auto-ausblenden nach 5s
   }
 });
-
-// ============================================================
-//  SWIPE-GESTE
-// ============================================================
-let _swipeStartX = 0, _swipeStartY = 0, _swipeEl = null, _swipeActive = null;
-
-function closeSwipe() {
-  if (!_swipeActive) return;
-  const entry = _swipeActive.querySelector('.entry');
-  const actions = _swipeActive.querySelector('.swipe-actions');
-  if (entry) { entry.style.transform = ''; entry.style.transition = 'transform 0.25s ease'; }
-  if (actions) { actions.style.transform = 'translateX(100%)'; actions.style.transition = 'transform 0.25s ease'; }
-  _swipeActive = null;
-}
-
-function initSwipe() {
-  const list = document.getElementById('entriesList');
-  if (!list) return;
-
-  list.addEventListener('touchstart', ev => {
-    const wrapper = ev.target.closest('.swipe-wrapper');
-    if (!wrapper) return;
-    _swipeStartX = ev.touches[0].clientX;
-    _swipeStartY = ev.touches[0].clientY;
-    _swipeEl = wrapper;
-  }, { passive: true });
-
-  list.addEventListener('touchmove', ev => {
-    if (!_swipeEl) return;
-    const dx = ev.touches[0].clientX - _swipeStartX;
-    const dy = Math.abs(ev.touches[0].clientY - _swipeStartY);
-    if (dy > Math.abs(dx) + 5) { _swipeEl = null; return; }
-    if (dx < -8) ev.preventDefault();
-  }, { passive: false });
-
-  list.addEventListener('touchend', ev => {
-    if (!_swipeEl) return;
-    const dx = ev.changedTouches[0].clientX - _swipeStartX;
-    const entry = _swipeEl.querySelector('.entry');
-    const actions = _swipeEl.querySelector('.swipe-actions');
-    const actionW = actions ? actions.offsetWidth || 216 : 216;
-
-    if (dx < -60) {
-      if (_swipeActive && _swipeActive !== _swipeEl) closeSwipe();
-      _swipeActive = _swipeEl;
-      entry.style.transition = 'transform 0.25s ease';
-      entry.style.transform = `translateX(-${actionW}px)`;
-      actions.style.transition = 'transform 0.25s ease';
-      actions.style.transform = 'translateX(0)';
-    } else if (dx > 20 && _swipeActive === _swipeEl) {
-      closeSwipe();
-    }
-    _swipeEl = null;
-  }, { passive: true });
-
-  document.addEventListener('touchstart', ev => {
-    if (_swipeActive && !_swipeActive.contains(ev.target)) closeSwipe();
-  }, { passive: true });
-}
 
 // ============================================================
 //  SERVICE WORKER REGISTRIERUNG
@@ -3629,9 +3514,13 @@ function deleteEntry(id) {
     clearTimeout(_deleteTimers[id]);
     delete _deleteTimers[id];
     data.entries = data.entries.filter(e => e.id !== id);
+    // Tombstone: track deleted id so sync pull never brings it back
+    if (!data.deletedIds) data.deletedIds = [];
+    if (!data.deletedIds.includes(id)) data.deletedIds.push(id);
     save();
     renderEntries();
     renderSaldo();
+    syncPush(); // push deletion to Gist immediately
   } else {
     // Erster Klick → Bestätigung anzeigen
     btn.classList.add('confirm');
