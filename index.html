@@ -1136,8 +1136,10 @@
 <!-- BACKUP REMINDER BANNER -->
 <div class="update-banner" id="backupBanner" style="background:#c4956a;top:3rem">
   <span>💾 Kein Backup seit 7+ Tagen — CSV exportieren?</span>
-  <button onclick="exportCSV();dismissBackupBanner()">Exportieren</button>
-  <button onclick="localStorage.setItem('blitz_last_export',Date.now());dismissBackupBanner()" style="margin-left:0.5rem;background:rgba(0,0,0,0.2)">Später</button>
+  <div style="display:flex;gap:0.5rem;align-items:center">
+    <button onclick="exportCSV();dismissBackupBanner()">Exportieren</button>
+    <button onclick="localStorage.setItem('blitz_last_export',Date.now());dismissBackupBanner()" style="background:none;border:none;color:#0f0e0b;font-size:1.3rem;line-height:1;cursor:pointer;padding:0 0.3rem;min-height:unset">✕</button>
+  </div>
 </div>
 
 <!-- PIN LOCK OVERLAY -->
@@ -1169,7 +1171,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v37</div>
+<div class="version-badge">v38</div>
 <div class="container" id="appContainer">
 
   <header>
