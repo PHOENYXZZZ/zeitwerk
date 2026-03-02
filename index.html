@@ -1170,7 +1170,8 @@
     <h1>BLITZ</h1>
     <span class="subtitle">Elektro · Energie & Gebäudetechnik</span>
     <span id="headerSyncDot" style="margin-left:auto;font-size:0.65rem;color:var(--muted);cursor:pointer" onclick="showPage('sync');document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('syncTab').classList.add('active')" title="Sync-Status"></span>
-  </header>
+    <span id="offlineDot" style="width:8px;height:8px;border-radius:50%;background:#4caf50;display:inline-block;margin-left:0.4rem;vertical-align:middle;flex-shrink:0;transition:background 0.4s" title="Online"></span>
+</header>
 
   <div class="tabs no-print">
     <button class="tab active" onclick="showPage('neu')">➕ Neu</button>
@@ -1357,7 +1358,7 @@
         </div>
         <span class="mehr-chevron">›</span>
       </button>
-      <button class="mehr-item" onclick="exportPDF()">
+      <button class="mehr-item" onclick="showPDFExportDialog()">
         <span class="mehr-icon">📄</span>
         <div class="mehr-item-text">
           <div class="mehr-title">PDF Stundenzettel</div>
@@ -1552,7 +1553,7 @@
 
     <div class="export-row no-print" id="exportRow" style="margin-top:1.5rem;display:none">
       <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
-      <button class="btn-ghost" onclick="exportPDF()">⬇ PDF Stundenzettel</button>
+      <button class="btn-ghost" onclick="showPDFExportDialog()">⬇ PDF Stundenzettel</button>
     </div>
   </div>
 
@@ -1571,6 +1572,7 @@
         <button class="btn-ghost" onclick="navWeek(-1)">← Vorherige</button>
         <span id="weekRangeLabel" style="font-size:0.8rem;color:var(--accent)"></span>
         <button class="btn-ghost" onclick="navWeek(1)">Nächste →</button>
+        <button class="btn-ghost" style="margin-left:auto;font-size:0.75rem" onclick="exportCurrentWeekPDF()" title="Woche als PDF exportieren">&#128196; Exportieren</button>
       </div>
       <div id="weekGrid"></div>
     </div>
@@ -1823,8 +1825,8 @@ function showPage(id) {
 // ============================================================
 function updateClock() {
   const now = new Date();
-  document.getElementById('liveClock').textContent = now.toLocaleTimeString('de-AT');
-  document.getElementById('liveDate').textContent = now.toLocaleDateString('de-AT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('liveClock').textContent = now.toLocaleTimeString('de-DE');
+  document.getElementById('liveDate').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -2085,7 +2087,7 @@ function renderEntries() {
     const d = new Date(date + 'T12:00');
     const dateLabel = date === todayStr ? 'Heute'
       : date === yesterdayStr ? 'Gestern'
-      : `${weekdays[d.getDay()]} · ${d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' })}`;
+      : `${weekdays[d.getDay()]} · ${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })}`;
     const pendingCount = entries.filter(e => !e.transferred).length;
     const pendingBadge = pendingCount > 0
       ? `<span class="day-pending">${pendingCount} offen</span>` : '';
@@ -2161,7 +2163,7 @@ function populateFilterSelects() {
   mSel.innerHTML = '<option value="">Alle Monate</option>' +
     months.map(m => {
       const [y, mo] = m.split('-');
-      const label = new Date(y, mo - 1).toLocaleDateString('de-AT', { month: 'long', year: 'numeric' });
+      const label = new Date(y, mo - 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
       return `<option value="${m}" ${m === cur ? 'selected' : ''}>${label}</option>`;
     }).join('');
 
@@ -2289,8 +2291,8 @@ function renderWeekView() {
   const todayStr = isoDate(new Date());
 
   document.getElementById('weekRangeLabel').textContent =
-    monday.toLocaleDateString('de-AT', { day: '2-digit', month: 'long' }) +
-    ' – ' + sunday.toLocaleDateString('de-AT', { day: '2-digit', month: 'long', year: 'numeric' });
+    monday.toLocaleDateString('de-DE', { day: '2-digit', month: 'long' }) +
+    ' – ' + sunday.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const dayNames = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
   let totalWeekMins = 0;
@@ -2309,7 +2311,7 @@ function renderWeekView() {
       <div class="week-day-header">
         <div>
           <div class="week-day-name">${dayNames[i]}</div>
-          <div class="week-day-date">${day.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' })}</div>
+          <div class="week-day-date">${day.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
         </div>
         ${dayMins > 0 ? `<div class="week-day-total">${fmtDur(dayMins)}</div>` : ''}
       </div>
@@ -2364,7 +2366,7 @@ function renderMonthView() {
   const todayStr = isoDate(new Date());
 
   document.getElementById('monthLabel').textContent =
-    baseDate.toLocaleDateString('de-AT', { month: 'long', year: 'numeric' });
+    baseDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
 
   // Calendar grid: starts Monday
   const firstDay = new Date(y, m, 1);
@@ -2490,7 +2492,7 @@ function renderYearView() {
   });
   const maxMins = Math.max(...monthTotals, 1);
 
-  const monthNames = ['Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const monthNames = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
   html += `<div class="year-month-grid">`;
   for (let mi = 0; mi < 12; mi++) {
@@ -2537,7 +2539,7 @@ function populateStatsMonths() {
   sel.innerHTML = '<option value="">Alle Zeit</option>' +
     months.map(m => {
       const [y, mo] = m.split('-');
-      const label = new Date(y, mo - 1).toLocaleDateString('de-AT', { month: 'long', year: 'numeric' });
+      const label = new Date(y, mo - 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
       return `<option value="${m}" ${m === cur ? 'selected' : ''}>${label}</option>`;
     }).join('');
 }
@@ -2725,39 +2727,115 @@ function exportCSV() {
   localStorage.setItem('blitz_last_export', Date.now());
 }
 
-function exportPDF() {
-  const filtered = getFilteredEntries();
-  if (filtered.length === 0) { alert('Keine Einträge für den gewählten Filter.'); return; }
+
+// ============================================================
+//  PDF EXPORT DIALOG
+// ============================================================
+function showPDFExportDialog(prefillFrom, prefillTo) {
+  const sel = document.getElementById('pdfCustomer');
+  sel.innerHTML = '<option value="">Alle Kunden</option>';
+  (data.customers || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+  if (prefillFrom !== undefined) document.getElementById('pdfFrom').value = prefillFrom || '';
+  if (prefillTo   !== undefined) document.getElementById('pdfTo').value   = prefillTo   || '';
+  document.getElementById('pdfExportModal').style.display = 'flex';
+}
+
+function closePDFModal() {
+  document.getElementById('pdfExportModal').style.display = 'none';
+}
+
+function pdfPreset(preset) {
+  const today = new Date();
+  let from, to;
+  if (preset === 'this-week') {
+    const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
+    from = new Date(today); from.setDate(today.getDate() - dow);
+    to   = new Date(from);  to.setDate(from.getDate() + 6);
+  } else if (preset === 'last-week') {
+    const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
+    const thisMonday = new Date(today); thisMonday.setDate(today.getDate() - dow);
+    from = new Date(thisMonday); from.setDate(thisMonday.getDate() - 7);
+    to   = new Date(from);       to.setDate(from.getDate() + 6);
+  } else if (preset === 'last7') {
+    from = new Date(today); from.setDate(today.getDate() - 7);
+    to   = today;
+  } else if (preset === 'last30') {
+    from = new Date(today); from.setDate(today.getDate() - 30);
+    to   = today;
+  } else if (preset === 'this-month') {
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+    to   = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  } else if (preset === 'last-month') {
+    from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    to   = new Date(today.getFullYear(), today.getMonth(), 0);
+  } else if (preset === 'all') {
+    document.getElementById('pdfFrom').value = '';
+    document.getElementById('pdfTo').value   = '';
+    return;
+  }
+  document.getElementById('pdfFrom').value = isoDate(from);
+  document.getElementById('pdfTo').value   = isoDate(to);
+}
+
+function confirmPDFExport() {
+  const fromDate   = document.getElementById('pdfFrom').value || undefined;
+  const toDate     = document.getElementById('pdfTo').value   || undefined;
+  const customerId = document.getElementById('pdfCustomer').value || undefined;
+  closePDFModal();
+  exportPDF(fromDate, toDate, customerId);
+}
+
+function exportCurrentWeekPDF() {
+  const monday = getWeekStart(weekOffset);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  showPDFExportDialog(isoDate(monday), isoDate(sunday));
+}
+
+function exportPDF(fromDate, toDate, customerId) {
+  let filtered = [...data.entries].sort((a, b) => a.date.localeCompare(b.date));
+  if (fromDate)   filtered = filtered.filter(e => e.date >= fromDate);
+  if (toDate)     filtered = filtered.filter(e => e.date <= toDate);
+  if (customerId) filtered = filtered.filter(e => String(e.customerId) === String(customerId));
+
+  if (filtered.length === 0) { alert('Keine Eintr\u00e4ge f\u00fcr den gew\u00e4hlten Zeitraum.'); return; }
 
   const totalMins = filtered.reduce((s, e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const totalH = Math.floor(totalMins / 60);
   const totalM = totalMins % 60;
 
-  const filterMonth = document.getElementById('filterMonth');
-  const filterCustomer = document.getElementById('filterCustomer');
-  const periodLabel = filterMonth.value
-    ? filterMonth.options[filterMonth.selectedIndex].text
-    : 'Alle Zeiträume';
-  const customerLabel = filterCustomer.value
-    ? filterCustomer.options[filterCustomer.selectedIndex].text
-    : 'Alle Kunden';
+  function fmtDate(iso) {
+    return new Date(iso + 'T12:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  let periodLabel;
+  if (fromDate && toDate) periodLabel = fmtDate(fromDate) + ' \u2013 ' + fmtDate(toDate);
+  else if (fromDate)      periodLabel = 'ab ' + fmtDate(fromDate);
+  else if (toDate)        periodLabel = 'bis ' + fmtDate(toDate);
+  else                    periodLabel = 'Alle Zeitr\u00e4ume';
+
+  const customerObj   = customerId ? data.customers.find(c => String(c.id) === String(customerId)) : null;
+  const customerLabel = customerObj ? customerObj.name : 'Alle Kunden';
 
   const rows = filtered.map(e => {
     const dur = calcDuration(e.from, e.to, e.breakMin);
-    const dateStr = new Date(e.date + 'T12:00').toLocaleDateString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-    const taskColors = { Installation: '#1a6b3a', Wartung: '#1a3d6b', Störung: '#6b1a1a', Sonstiges: '#5a3a1a' };
+    const dateStr = new Date(e.date + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const taskColors = { Installation: '#1a6b3a', Wartung: '#1a3d6b', St\u00f6rung: '#6b1a1a', Sonstiges: '#5a3a1a' };
     const taskBg = e.task ? (taskColors[e.task] || '#5a3a1a') : '';
     const taskBadge = e.task ? `<span style="background:${taskBg};color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;letter-spacing:0.5px">${e.task}</span>` : '';
-    const breakStr = e.breakMin > 0 ? `${e.breakMin} min` : '–';
-    const desc = [e.title, e.note].filter(Boolean).join(' · ') || '';
+    const breakStr = e.breakMin > 0 ? `${e.breakMin} min` : '\u2013';
+    const desc = [e.title, e.note].filter(Boolean).join(' \u00b7 ') || '';
     return `
       <tr>
         <td>${dateStr}</td>
-        <td>${e.from} – ${e.to}</td>
+        <td>${e.from} \u2013 ${e.to}</td>
         <td style="text-align:center">${breakStr}</td>
         <td style="text-align:right;font-weight:600">${dur.h}h ${String(dur.m).padStart(2,'0')}m</td>
-        <td>${e.customerName || '–'}</td>
-        <td>${e.locationName && e.locationName !== '– Standort wählen –' ? e.locationName : '–'}</td>
+        <td>${e.customerName || '\u2013'}</td>
+        <td>${e.locationName && e.locationName !== '\u2013 Standort w\u00e4hlen \u2013' ? e.locationName : '\u2013'}</td>
         <td>${taskBadge}</td>
         <td style="color:#555;font-size:10px">${desc}</td>
       </tr>`;
@@ -2768,7 +2846,7 @@ function exportPDF() {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width">
-<title>Stundenzettel – ${periodLabel}</title>
+<title>Stundenzettel \u2013 ${periodLabel}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #1a1a1a; padding: 2cm 1.8cm; }
@@ -2778,7 +2856,6 @@ function exportPDF() {
   .meta { text-align: right; }
   .meta-label { font-size: 9px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
   .meta-val { font-size: 13px; font-weight: 600; color: #1a1a1a; }
-  h2 { font-size: 14px; color: #444; margin-bottom: 1rem; font-weight: 400; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
   th { background: #f5f0e0; color: #555; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 8px; text-align: left; border-bottom: 2px solid #c8a832; }
   td { padding: 6px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
@@ -2787,7 +2864,6 @@ function exportPDF() {
   .total-row { background: #f5f0e0 !important; font-weight: 700; }
   .total-row td { border-top: 2px solid #c8a832; font-size: 12px; padding: 8px; }
   .summary { display: flex; gap: 2rem; margin-top: 1.5rem; padding: 1rem; background: #f9f6ec; border-left: 3px solid #c8a832; }
-  .summary-item { }
   .summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 3px; }
   .summary-val { font-size: 18px; font-weight: 700; color: #c8a832; }
   .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd; font-size: 9px; color: #999; display: flex; justify-content: space-between; }
@@ -2798,7 +2874,7 @@ function exportPDF() {
 <div class="header">
   <div>
     <div class="logo">BLITZ</div>
-    <div class="company">Elektro · Energie &amp; Gebäudetechnik</div>
+    <div class="company">Elektro \u00b7 Energie &amp; Geb\u00e4udetechnik</div>
   </div>
   <div class="meta">
     <div class="meta-label">Zeitraum</div>
@@ -2816,14 +2892,14 @@ function exportPDF() {
       <th style="text-align:right">Netto</th>
       <th>Kunde</th>
       <th>Standort</th>
-      <th>Tätigkeit</th>
+      <th>T\u00e4tigkeit</th>
       <th>Beschreibung</th>
     </tr>
   </thead>
   <tbody>
     ${rows}
     <tr class="total-row">
-      <td colspan="3">Gesamt (${filtered.length} Einträge)</td>
+      <td colspan="3">Gesamt (${filtered.length} Eintr\u00e4ge)</td>
       <td style="text-align:right">${totalH}h ${String(totalM).padStart(2,'0')}m</td>
       <td colspan="4"></td>
     </tr>
@@ -2836,7 +2912,7 @@ function exportPDF() {
     <div class="summary-val">${totalH}h ${String(totalM).padStart(2,'0')}m</div>
   </div>
   <div class="summary-item">
-    <div class="summary-label">Einträge</div>
+    <div class="summary-label">Eintr\u00e4ge</div>
     <div class="summary-val">${filtered.length}</div>
   </div>
   <div class="summary-item">
@@ -2846,8 +2922,8 @@ function exportPDF() {
 </div>
 
 <div class="footer">
-  <span>Erstellt mit BLITZ · ${new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-  <span>PHOENYXZZZ · Elektro · Energie &amp; Gebäudetechnik</span>
+  <span>Erstellt mit BLITZ \u00b7 ${new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+  <span>PHOENYXZZZ \u00b7 Elektro \u00b7 Energie &amp; Geb\u00e4udetechnik</span>
 </div>
 
 <script>window.onload = () => window.print();<\/script>
@@ -3051,7 +3127,7 @@ async function syncPush() {
       })));
       if (error) throw error;
     }
-    const ts = new Date().toLocaleTimeString('de-AT');
+    const ts = new Date().toLocaleTimeString('de-DE');
     setSyncStatus('ok', 'Synchronisiert', `Zuletzt: ${ts}`);
     const el = document.getElementById('syncLastUp');
     if (el) el.textContent = ts;
@@ -3094,7 +3170,7 @@ async function syncPull() {
     renderSaldo();
     populateAllSelects();
     renderSyncPage();
-    const ts = new Date().toLocaleTimeString('de-AT');
+    const ts = new Date().toLocaleTimeString('de-DE');
     setSyncStatus('ok', 'Synchronisiert', `Zuletzt: ${ts}`);
     const el = document.getElementById('syncLastDown');
     if (el) el.textContent = ts;
@@ -3189,7 +3265,7 @@ async function renderTeamPage() {
     for (let i = 0; i < 12; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      const label = d.toLocaleDateString('de-AT', { month: 'long', year: 'numeric' });
+      const label = d.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
       const opt = document.createElement('option');
       opt.value = val; opt.textContent = label;
       sel.appendChild(opt);
@@ -3439,10 +3515,10 @@ function updateQuickDate() {
   const weekdays = ['So','Mo','Di','Mi','Do','Fr','Sa'];
   document.getElementById('qd-weekday').textContent = val === today ? 'Heute' : weekdays[d.getDay()];
   document.getElementById('qd-date-val').textContent =
-    d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   document.getElementById('quickDateDisplay').classList.toggle('qd-today', val === today);
   document.getElementById('quickTodayLabel').textContent =
-    d.toLocaleDateString('de-AT', { weekday: 'long' });
+    d.toLocaleDateString('de-DE', { weekday: 'long' });
 }
 
 function updateQuickDuration() {
@@ -3681,6 +3757,46 @@ window.addEventListener('focus', () => {
 });
 
 
+
+// ============================================================
+//  OFFLINE INDIKATOR
+// ============================================================
+function updateOnlineStatus() {
+  const dot = document.getElementById('offlineDot');
+  if (!dot) return;
+  if (navigator.onLine) {
+    dot.style.background = '#4caf50';
+    dot.title = 'Online';
+  } else {
+    dot.style.background = '#f59e0b';
+    dot.title = 'Offline – Daten werden lokal gespeichert';
+  }
+}
+
+function showNetworkToast(msg) {
+  let toast = document.getElementById('networkToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'networkToast';
+    Object.assign(toast.style, {
+      position: 'fixed', bottom: '5.5rem', left: '50%', transform: 'translateX(-50%)',
+      background: 'rgba(20,20,20,0.88)', color: '#fff',
+      padding: '0.55rem 1.1rem', borderRadius: '20px',
+      fontSize: '0.76rem', zIndex: '9999', pointerEvents: 'none',
+      transition: 'opacity 0.4s', opacity: '0', whiteSpace: 'nowrap'
+    });
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+}
+
+window.addEventListener('online',  () => { updateOnlineStatus(); showNetworkToast('✅ Wieder online'); });
+window.addEventListener('offline', () => { updateOnlineStatus(); showNetworkToast('⚠️ Offline – Daten werden lokal gespeichert'); });
+updateOnlineStatus();
+
 // ============================================================
 //  SERVICE WORKER REGISTRIERUNG
 // ============================================================
@@ -3852,6 +3968,56 @@ function deleteEntry(id) {
     <div class="edit-modal-actions">
       <button class="btn-ghost" onclick="closeEditModal()">Abbrechen</button>
       <button class="btn-primary" onclick="saveEditEntry()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- =================== PDF EXPORT MODAL =================== -->
+<div id="pdfExportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:1000;align-items:center;justify-content:center;padding:1rem;overflow-y:auto">
+  <div style="background:var(--surface);border-radius:14px;max-width:440px;width:100%;margin:auto;padding:1.5rem;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <div style="font-family:'Fraunces',serif;font-size:1.15rem;font-weight:300;color:var(--accent)">PDF Stundenzettel</div>
+      <button onclick="closePDFModal()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1;padding:0.1rem 0.3rem">×</button>
+    </div>
+
+    <div style="margin-bottom:1rem">
+      <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem">Schnellauswahl</div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.35rem">
+        <button class="btn-ghost" style="font-size:0.7rem;padding:0.28rem 0.6rem" onclick="pdfPreset('this-week')">Diese Woche</button>
+        <button class="btn-ghost" style="font-size:0.7rem;padding:0.28rem 0.6rem" onclick="pdfPreset('last-week')">Letzte Woche</button>
+        <button class="btn-ghost" style="font-size:0.7rem;padding:0.28rem 0.6rem" onclick="pdfPreset('last7')">Letzte 7 Tage</button>
+        <button class="btn-ghost" style="font-size:0.7rem;padding:0.28rem 0.6rem" onclick="pdfPreset('last30')">Letzte 30 Tage</button>
+        <button class="btn-ghost" style="font-size:0.7rem;padding:0.28rem 0.6rem" onclick="pdfPreset('this-month')">Dieser Monat</button>
+        <button class="btn-ghost" style="font-size:0.7rem;padding:0.28rem 0.6rem" onclick="pdfPreset('last-month')">Letzter Monat</button>
+        <button class="btn-ghost" style="font-size:0.7rem;padding:0.28rem 0.6rem" onclick="pdfPreset('all')">Alles</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem">
+      <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem">Eigener Zeitraum</div>
+      <div style="display:flex;gap:0.5rem">
+        <div style="flex:1">
+          <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.2rem">Von</div>
+          <input type="date" id="pdfFrom" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:0.38rem 0.5rem;color:var(--text);font-size:0.78rem">
+        </div>
+        <div style="flex:1">
+          <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.2rem">Bis</div>
+          <input type="date" id="pdfTo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:0.38rem 0.5rem;color:var(--text);font-size:0.78rem">
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.4rem">
+      <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem">Kunde</div>
+      <select id="pdfCustomer" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:0.38rem 0.5rem;color:var(--text);font-size:0.8rem">
+        <option value="">Alle Kunden</option>
+      </select>
+    </div>
+
+    <div style="display:flex;gap:0.5rem">
+      <button class="btn-primary" style="flex:1" onclick="confirmPDFExport()">&#128196; PDF erstellen</button>
+      <button class="btn-ghost" onclick="closePDFModal()">Abbrechen</button>
     </div>
   </div>
 </div>
