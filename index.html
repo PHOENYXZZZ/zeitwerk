@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="BLITZ">
 <title>BLITZ – Zeiterfassung</title>
 <link rel="manifest" href="manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root {
@@ -98,11 +98,11 @@
     padding-bottom: 1rem;
   }
   h1 {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Fraunces', serif;
     font-weight: 700;
     font-size: 2rem;
     color: var(--accent);
-    letter-spacing: 2px;
+    letter-spacing: 4px;
     text-transform: uppercase;
   }
   .subtitle { color: var(--muted); font-size: 0.75rem; }
@@ -145,7 +145,7 @@
 
   /* CLOCK */
   .live-time {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Fraunces', serif;
     font-size: 3.5rem;
     font-weight: 300;
     color: var(--text);
@@ -271,7 +271,7 @@
     padding: 0 0.1rem 0.4rem; border-bottom: 1px solid var(--border); margin-bottom: 0.4rem;
   }
   .day-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
-  .day-total { font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 300; color: var(--accent); }
+  .day-total { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 300; color: var(--accent); }
   .entries-summary { font-size: 0.62rem; color: var(--muted); text-align: right; margin-bottom: 0.75rem; letter-spacing: 0.5px; }
 
   .entries-list { display: flex; flex-direction: column; gap: 0; }
@@ -341,7 +341,7 @@
   }
   .saldo-item { flex: 1; min-width: 100px; }
   .saldo-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 0.3rem; }
-  .saldo-val { font-family: 'DM Sans', sans-serif; font-size: 1.6rem; font-weight: 300; }
+  .saldo-val { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 300; }
   .saldo-plus { color: var(--green); }
   .saldo-minus { color: var(--red); }
   .saldo-neutral { color: var(--accent); }
@@ -362,7 +362,7 @@
   .task-other { background: rgba(196,149,106,0.15); color: var(--accent2); border: 1px solid var(--accent2); }
 
   .entry-duration {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Fraunces', serif;
     font-size: 1.1rem;
     color: var(--accent);
     font-weight: 300;
@@ -422,6 +422,59 @@
     padding: 1rem;
   }
   .edit-modal-overlay.hidden { display: none; }
+
+  /* SPLIT MODAL */
+  .split-modal-overlay {
+    position: fixed; inset: 0; z-index: 5100;
+    background: rgba(0,0,0,0.75);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .split-modal-overlay.hidden { display: none; }
+  .split-modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    width: 100%; max-width: 520px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .split-modal-title {
+    font-size: 0.65rem; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--muted); margin-bottom: 0.8rem;
+  }
+  .split-info {
+    background: var(--surface2); border-radius: var(--radius-sm);
+    padding: 0.6rem 0.8rem; margin-bottom: 1rem; font-size: 0.78rem;
+  }
+  .split-segments { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+  .split-segment {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 0.7rem; display: grid; gap: 0.4rem;
+    grid-template-columns: 1fr 1fr; background: var(--bg);
+  }
+  .split-segment-header {
+    grid-column: 1 / -1; font-size: 0.65rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .split-segment input, .split-segment select {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0.3rem 0.5rem;
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.8rem;
+  }
+  .split-segment input[readonly] { opacity: 0.6; }
+  .split-balance {
+    font-size: 0.78rem; padding: 0.5rem 0.8rem;
+    border-radius: var(--radius-sm); background: var(--surface2);
+    margin-bottom: 1rem;
+  }
+  .split-balance.ok    { color: var(--green); }
+  .split-balance.warn  { color: var(--red); }
+  .split-modal-actions {
+    display: flex; gap: 0.75rem; justify-content: space-between; flex-wrap: wrap;
+  }
+
   .edit-modal-box {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -485,7 +538,7 @@
     padding: 1.2rem;
   }
   .stat-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 0.5rem; }
-  .stat-value { font-family: 'DM Sans', sans-serif; font-size: 2rem; font-weight: 300; color: var(--accent); }
+  .stat-value { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 300; color: var(--accent); }
   .stat-sub { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
 
   .customer-breakdown { margin-top: 1rem; }
@@ -498,7 +551,7 @@
     font-size: 0.8rem;
   }
   .cb-name { flex: 1; }
-  .cb-hours { color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 1.1rem; font-weight: 300; }
+  .cb-hours { color: var(--accent); font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 300; }
   .cb-bar-wrap { width: 100px; height: 4px; background: var(--border); border-radius: 2px; }
   .cb-bar { height: 4px; background: var(--accent); border-radius: 2px; transition: width 0.5s; }
 
@@ -534,29 +587,29 @@
   }
   .week-day-header {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 0.4rem 0.75rem;
+    padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--border);
     background: var(--surface2);
   }
   .week-day-name { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
-  .week-day-date { font-family: 'DM Sans', sans-serif; font-size: 1.1rem; font-weight: 300; color: var(--text); }
+  .week-day-date { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 300; color: var(--text); }
   .week-day-total { font-size: 0.75rem; color: var(--accent); }
   .week-day-today .week-day-name { color: var(--accent); }
   .week-day-today { border-color: var(--accent); }
 
   .week-entries { padding: 0.5rem 0; }
   .week-entry-row {
-    display: grid; grid-template-columns: 72px 1fr auto;
-    gap: 0.35rem; align-items: center;
-    padding: 0.28rem 0.75rem;
+    display: grid; grid-template-columns: 80px 1fr auto;
+    gap: 0.5rem; align-items: center;
+    padding: 0.45rem 1rem;
     border-bottom: 1px solid var(--border);
-    font-size: 0.72rem; transition: background 0.1s;
+    font-size: 0.78rem; transition: background 0.1s;
   }
   .week-entry-row:last-child { border-bottom: none; }
   .week-entry-row:hover { background: var(--surface2); }
-  .week-entry-time { color: var(--muted); font-size: 0.65rem; }
+  .week-entry-time { color: var(--muted); font-size: 0.72rem; }
   .week-entry-customer { color: var(--text); }
-  .week-entry-dur { color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 400; white-space: nowrap; }
+  .week-entry-dur { color: var(--accent); font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 300; white-space: nowrap; }
   .week-day-empty { padding: 0.75rem 1rem; font-size: 0.75rem; color: var(--muted); font-style: italic; }
   .week-total-bar {
     display: flex; justify-content: space-between; align-items: center;
@@ -565,7 +618,7 @@
     border-radius: 2px; font-size: 0.75rem;
   }
   .week-total-label { color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-size: 0.65rem; }
-  .week-total-val { font-family: 'DM Sans', sans-serif; font-size: 1.3rem; font-weight: 300; color: var(--accent); }
+  .week-total-val { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 300; color: var(--accent); }
 
   /* MONTH CALENDAR GRID */
   .month-cal-grid {
@@ -586,7 +639,7 @@
   .month-cal-cell.today-cell { border-color: var(--accent); }
   .month-cal-cell-day {
     font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem;
-    font-family: 'DM Sans', sans-serif; font-weight: 300;
+    font-family: 'Fraunces', serif; font-weight: 300;
   }
   .today-cell .month-cal-cell-day { color: var(--accent); }
   .month-cal-entry-dot {
@@ -597,7 +650,7 @@
   }
   .month-cal-total {
     position: absolute; bottom: 3px; right: 4px;
-    font-size: 0.6rem; color: var(--accent); font-family: 'DM Sans', sans-serif;
+    font-size: 0.6rem; color: var(--accent); font-family: 'Fraunces', serif;
   }
   .month-summary-list { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.75rem; }
   .month-summary-week {
@@ -606,7 +659,7 @@
     border-radius: 2px; font-size: 0.75rem;
   }
   .month-summary-week-label { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; }
-  .month-summary-week-val { color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 1.1rem; font-weight: 300; }
+  .month-summary-week-val { color: var(--accent); font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 300; }
 
   /* YEAR VIEW */
   .year-month-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
@@ -617,11 +670,11 @@
   }
   .year-month-card.has-entries { border-color: var(--border); }
   .year-month-card-name {
-    font-family: 'DM Sans', sans-serif; font-size: 1.2rem; font-weight: 300;
+    font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 300;
     color: var(--text); margin-bottom: 0.75rem;
   }
   .year-month-stat { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.2rem; }
-  .year-month-hours { font-family: 'DM Sans', sans-serif; font-size: 2rem; font-weight: 300; color: var(--accent); line-height: 1; }
+  .year-month-hours { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 300; color: var(--accent); line-height: 1; }
   .year-month-bar-wrap { margin-top: 0.75rem; height: 3px; background: var(--border); border-radius: 2px; }
   .year-month-bar { height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.5s; }
   .year-month-customer-list { margin-top: 0.75rem; }
@@ -637,7 +690,7 @@
   }
   .year-total-item { flex: 1; min-width: 120px; }
   .year-total-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 0.3rem; }
-  .year-total-val { font-family: 'DM Sans', sans-serif; font-size: 1.8rem; font-weight: 300; color: var(--accent); }
+  .year-total-val { font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 300; color: var(--accent); }
 
   /* SYNC PAGE */
   .sync-status-bar {
@@ -670,7 +723,7 @@
   .sync-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 0.75rem; margin-top: 0.5rem; }
   .sync-info-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; padding: 0.75rem; }
   .sync-info-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 0.3rem; }
-  .sync-info-val { font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 300; color: var(--accent); }
+  .sync-info-val { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 300; color: var(--accent); }
 
   @keyframes spin { to { transform: rotate(360deg); } }
   .spin { display: inline-block; animation: spin 1s linear infinite; }
@@ -729,9 +782,6 @@
     }
     .bottom-nav-item .nav-icon { font-size: 1.2rem; line-height: 1; }
     .bottom-nav-item.active { color: var(--accent); }
-    .nav-icon svg { display: block; margin: 0 auto; }
-    .mehr-icon svg { flex-shrink: 0; display: block; }
-    .entry-edit svg, .entry-delete svg, .entry-dup svg { pointer-events: none; display: inline-block; vertical-align: middle; }
     .bottom-nav-item:active { color: var(--text); }
 
     /* Pages get top padding */
@@ -835,6 +885,21 @@
       text-transform: uppercase;
     }
     .entry-edit:hover { background: rgba(232,197,71,0.08); }
+    .entry-split {
+      flex: 1;
+      border: none;
+      border-right: 1px solid var(--border);
+      background: none;
+      color: var(--accent);
+      font-size: 0.72rem;
+      padding: 0;
+      min-height: 48px;
+      border-radius: 0;
+      -webkit-tap-highlight-color: transparent;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .entry-split:hover { background: rgba(232,197,71,0.08); }
     .entry-delete {
       flex: 1;
       border: none;
@@ -877,6 +942,8 @@
     }
     .edit-modal-actions { justify-content: stretch; }
     .edit-modal-actions button { flex: 1; min-height: 50px; }
+    .split-modal-overlay { align-items: flex-end; padding: 0; }
+    .split-modal-box { border-radius: 14px 14px 0 0; max-height: 88vh; }
 
     /* Filter row: scrollable */
     .filter-panel { flex-direction: column; }
@@ -905,9 +972,8 @@
 
     /* Week view: compact */
     .week-day-col { margin-bottom: 0.4rem; }
-    .week-day-col.week-day-empty-col { display: none; }
-    .week-day-date { font-size: 1rem; }
-    .week-entry-row { grid-template-columns: 66px 1fr auto; padding: 0.24rem 0.6rem; font-size: 0.68rem; }
+    .week-day-date { font-size: 1.1rem; }
+    .week-entry-row { grid-template-columns: 70px 1fr auto; padding: 0.5rem 0.75rem; }
 
     /* Month calendar: hide trailing cells on mobile */
     .month-cal-cell { min-height: 55px; padding: 0.25rem; }
@@ -936,7 +1002,7 @@
     background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
     font-size: 0.75rem; color: var(--muted); margin-bottom: 1.5rem;
   }
-  .quick-saldo-bar strong { color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 300; }
+  .quick-saldo-bar strong { color: var(--accent); font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 300; }
 
   .quick-date-row {
     display: flex; align-items: center; justify-content: center;
@@ -962,7 +1028,7 @@
   .quick-date-display.qd-today { border-color: var(--accent); }
   .qd-weekday { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
   .quick-date-display.qd-today .qd-weekday { color: var(--accent); }
-  .qd-date-val { font-family: 'DM Sans', sans-serif; font-size: 1.9rem; font-weight: 300; color: var(--text); line-height: 1.1; }
+  .qd-date-val { font-family: 'Fraunces', serif; font-size: 1.9rem; font-weight: 300; color: var(--text); line-height: 1.1; }
   .qd-hidden-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 
   .quick-time-row {
@@ -972,7 +1038,7 @@
   .qtf-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 0.3rem; text-align: center; }
   .qtf-input {
     width: 100%; text-align: center;
-    font-family: 'DM Sans', sans-serif; font-size: 2rem; font-weight: 300;
+    font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 300;
     background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
     color: var(--accent); padding: 0.75rem 0.25rem;
   }
@@ -980,7 +1046,7 @@
   .quick-time-sep { color: var(--muted); font-size: 1.2rem; padding-bottom: 0.9rem; flex-shrink: 0; }
 
   .quick-duration {
-    text-align: center; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 300;
+    text-align: center; font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 300;
     color: var(--green); min-height: 1.5rem; margin-bottom: 1.25rem;
   }
 
@@ -1025,7 +1091,7 @@
     padding: 1rem; text-align: center;
   }
   .mehr-saldo-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 0.3rem; }
-  .mehr-saldo-val { font-family: 'DM Sans', sans-serif; font-size: 1.5rem; font-weight: 300; }
+  .mehr-saldo-val { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 300; }
   .mehr-saldo-sub { font-size: 0.6rem; color: var(--muted); margin-top: 0.2rem; }
 
   .mehr-menu { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -1069,7 +1135,7 @@
       bottom: calc(64px + env(safe-area-inset-bottom) + 0.75rem);
     }
   }
-  .timer-banner-time { color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 1.1rem; font-weight: 300; }
+  .timer-banner-time { color: var(--accent); font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 300; }
   .timer-banner-actions { display: flex; gap: 0.5rem; }
   .timer-banner-actions button {
     font-family: 'DM Mono', monospace; font-size: 0.68rem;
@@ -1085,6 +1151,12 @@
     transition: color 0.15s; min-height: unset;
   }
   .entry-dup:hover { color: var(--blue); border: none; }
+  .entry-split {
+    background: none; border: none; color: var(--border);
+    cursor: pointer; font-size: 1rem; padding: 0.2rem 0.3rem;
+    transition: color 0.15s; min-height: unset;
+  }
+  .entry-split:hover { color: var(--accent); border: none; }
 
   /* UPDATE BANNER */
   .update-banner {
@@ -1119,7 +1191,7 @@
     gap: 2rem; padding: 2rem;
   }
   .pin-overlay.hidden { display: none; }
-  .pin-logo { font-family: 'DM Sans', sans-serif; font-size: 3rem; font-weight: 700; color: var(--accent); letter-spacing: -2px; }
+  .pin-logo { font-family: 'Fraunces', serif; font-size: 3rem; font-weight: 700; color: var(--accent); letter-spacing: -2px; }
   .pin-subtitle { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-top: -1.5rem; }
   .pin-dots { display: flex; gap: 1rem; margin: 0.5rem 0; }
   .pin-dot {
@@ -1140,7 +1212,7 @@
   .pin-key {
     aspect-ratio: 1; border-radius: 50%;
     background: var(--surface); border: 1px solid var(--border);
-    font-family: 'DM Sans', sans-serif; font-size: 1.6rem; font-weight: 300;
+    font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 300;
     color: var(--text); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.1s; -webkit-tap-highlight-color: transparent;
@@ -1151,20 +1223,6 @@
   .pin-key.empty { background: transparent; border-color: transparent; pointer-events: none; }
   .pin-setup-hint { font-size: 0.68rem; color: var(--muted); text-align: center; max-width: 260px; line-height: 1.6; }
   .pin-mode-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-  /* TOAST */
-  .toast {
-    position: fixed; bottom: calc(env(safe-area-inset-bottom) + 84px); left: 50%;
-    transform: translateX(-50%) translateY(10px);
-    background: var(--surface); border: 1px solid var(--border);
-    box-shadow: var(--shadow); border-radius: var(--radius);
-    padding: 0.6rem 1.2rem; font-size: 0.78rem; color: var(--text);
-    z-index: 9999; opacity: 0; transition: opacity 0.22s, transform 0.22s;
-    white-space: nowrap; max-width: calc(100vw - 2rem); pointer-events: none;
-    font-family: 'DM Mono', monospace;
-  }
-  .toast.toast-show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .toast-success { border-color: var(--green); color: var(--green); }
-  .toast-error   { border-color: var(--red);   color: var(--red);   }
 </style>
 </head>
 <body>
@@ -1214,7 +1272,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v46</div>
+<div class="version-badge">v45</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -1234,16 +1292,16 @@
   <!-- Mobile Bottom Navigation -->
   <nav class="bottom-nav no-print">
     <button class="bottom-nav-item active" id="bnav-neu" onclick="showPage('neu')">
-      <span class="nav-icon" id="navIconNeu"></span><span>Neu</span>
+      <span class="nav-icon">➕</span><span>Neu</span>
     </button>
     <button class="bottom-nav-item" id="bnav-eintraege" onclick="showPage('eintraege')">
-      <span class="nav-icon" id="navIconEintr"></span><span>Einträge</span>
+      <span class="nav-icon">📋</span><span>Einträge</span>
     </button>
     <button class="bottom-nav-item" id="bnav-uebersicht" onclick="showPage('uebersicht')">
-      <span class="nav-icon" id="navIconUeber"></span><span>Übersicht</span>
+      <span class="nav-icon">📅</span><span>Übersicht</span>
     </button>
     <button class="bottom-nav-item" id="bnav-mehr" onclick="showPage('mehr')">
-      <span class="nav-icon" id="navIconMehr"></span><span>Mehr</span>
+      <span class="nav-icon">···</span><span>Mehr</span>
     </button>
     <button class="bottom-nav-item" id="bnav-team" onclick="showPage('team')" style="display:none">
       <span class="nav-icon">👥</span><span>Team</span>
@@ -1272,8 +1330,7 @@
         <div class="qtf-label">Von</div>
         <input type="time" id="quickFrom" class="qtf-input" oninput="updateQuickDuration()">
       </div>
-      <div id="quickDurPreview" style="font-size:0.7rem;color:var(--accent);min-height:1.1em;text-align:center;grid-column:1/-1;margin:-0.2rem 0 0.1rem"></div>
-    <div class="quick-time-sep">→</div>
+      <div class="quick-time-sep">→</div>
       <div class="quick-time-field">
         <div class="qtf-label">Bis</div>
         <input type="time" id="quickTo" class="qtf-input" oninput="updateQuickDuration()">
@@ -1358,7 +1415,7 @@
     <div class="mehr-menu-title">Zeiterfassung</div>
     <div class="mehr-menu">
       <button class="mehr-item" onclick="showPage('zeiterfassung')">
-        <span class="mehr-icon" id="miClock"></span>
+        <span class="mehr-icon">⏱</span>
         <div class="mehr-item-text">
           <div class="mehr-title">Live-Timer</div>
           <div class="mehr-sub">Stempeluhr für direkte Zeiterfassung</div>
@@ -1374,7 +1431,7 @@
         <span class="mehr-chevron">›</span>
       </button>
       <button class="mehr-item" onclick="showPage('auswertung')">
-        <span class="mehr-icon" id="miChart"></span>
+        <span class="mehr-icon">📊</span>
         <div class="mehr-item-text">
           <div class="mehr-title">Auswertung</div>
           <div class="mehr-sub">Statistiken und Kundenübersicht</div>
@@ -1386,7 +1443,7 @@
     <div class="mehr-menu-title">Einstellungen & Export</div>
     <div class="mehr-menu">
       <button class="mehr-item" onclick="showPage('stammdaten')">
-        <span class="mehr-icon" id="miSettings"></span>
+        <span class="mehr-icon">⚙</span>
         <div class="mehr-item-text">
           <div class="mehr-title">Stammdaten</div>
           <div class="mehr-sub">Kunden, Standorte, PIN-Schutz</div>
@@ -1394,7 +1451,7 @@
         <span class="mehr-chevron">›</span>
       </button>
       <button class="mehr-item" id="mehrBenutzerItem" onclick="showPage('benutzer')" style="display:none">
-        <span class="mehr-icon" id="miUser"></span>
+        <span class="mehr-icon">👤</span>
         <div class="mehr-item-text">
           <div class="mehr-title">Benutzer</div>
           <div class="mehr-sub">Mitarbeiter anlegen &amp; verwalten</div>
@@ -1402,7 +1459,7 @@
         <span class="mehr-chevron">›</span>
       </button>
       <button class="mehr-item" onclick="showPage('sync')">
-        <span class="mehr-icon" id="miCloud"></span>
+        <span class="mehr-icon" id="mehrSyncIcon">☁</span>
         <div class="mehr-item-text">
           <div class="mehr-title">Sync</div>
           <div class="mehr-sub">Daten zwischen Geräten synchronisieren</div>
@@ -1410,7 +1467,7 @@
         <span class="mehr-chevron">›</span>
       </button>
       <button class="mehr-item" onclick="showPDFExportDialog()">
-        <span class="mehr-icon" id="miPdf"></span>
+        <span class="mehr-icon">📄</span>
         <div class="mehr-item-text">
           <div class="mehr-title">PDF Stundenzettel</div>
           <div class="mehr-sub">Druckfertiger Export aller Einträge</div>
@@ -1418,7 +1475,7 @@
         <span class="mehr-chevron">›</span>
       </button>
       <button class="mehr-item" onclick="exportCSV()">
-        <span class="mehr-icon" id="miDownload"></span>
+        <span class="mehr-icon">⬇</span>
         <div class="mehr-item-text">
           <div class="mehr-title">CSV exportieren</div>
           <div class="mehr-sub">Daten für Excel oder Numbers</div>
@@ -1762,6 +1819,18 @@
           <button class="btn-primary" onclick="syncNow()">⟳ Jetzt synchronisieren</button>
           <button class="btn-danger" onclick="logout()">✕ Abmelden</button>
         </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-top:1rem">
+          <label class="auto-sync-toggle" for="autoSyncToggle" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.75rem;color:var(--muted)">
+            <div style="position:relative;width:36px;height:20px">
+              <input type="checkbox" id="autoSyncToggle" style="opacity:0;width:0;height:0;position:absolute"
+                onchange="setAutoSyncEnabled(this.checked);document.getElementById('autoSyncSlider').style.background=this.checked?'var(--accent)':'var(--border)';document.getElementById('autoSyncKnob').style.transform=this.checked?'translateX(16px)':'translateX(0)'">
+              <div id="autoSyncSlider" style="position:absolute;inset:0;border-radius:10px;background:var(--border);transition:background 0.2s"></div>
+              <div id="autoSyncKnob" style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.25)"></div>
+            </div>
+            Auto-Sync
+          </label>
+          <span style="font-size:0.68rem;color:var(--muted)">Neue Einträge automatisch synchronisieren</span>
+        </div>
       </div>
     </div>
   </div>
@@ -1800,81 +1869,17 @@
 </div><!-- /appContainer -->
 
 <script>
-// ── SVG Icons ─────────────────────────────────────────────
-const ICONS = {
-  plus:     `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>`,
-  list:     `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>`,
-  calendar: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
-  dots:     `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/></svg>`,
-  clock:    `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-  chart:    `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>`,
-  settings: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>`,
-  user:     `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`,
-  cloud:    `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>`,
-  pdf:      `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
-  download: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>`,
-  edit:     `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>`,
-  trash:    `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`,
-  copy:     `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>`,
-};
-
-// ── Toast-System ──────────────────────────────────────────
-function showToast(msg, type = 'info') {
-  const el = document.createElement('div');
-  el.className = `toast toast-${type}`;
-  el.textContent = msg;
-  document.body.appendChild(el);
-  requestAnimationFrame(() => el.classList.add('toast-show'));
-  setTimeout(() => { el.classList.remove('toast-show'); setTimeout(() => el.remove(), 280); }, 2800);
-}
-
-// ── Live-Dauerberechnung ──────────────────────────────────
-function updateDurPreview(fromId, toId, breakId, previewId) {
-  const from = document.getElementById(fromId)?.value;
-  const to   = document.getElementById(toId)?.value;
-  const brk  = parseInt(document.getElementById(breakId)?.value) || 0;
-  const el   = document.getElementById(previewId);
-  if (!el) return;
-  if (!from || !to) { el.textContent = ''; return; }
-  const dur = calcDuration(from, to, brk);
-  if (dur.total <= 0) { el.style.color = 'var(--red)'; el.textContent = '→ Zeitangabe prüfen'; return; }
-  el.style.color = 'var(--accent)';
-  el.textContent = `→ ${dur.h}h ${String(dur.m).padStart(2,'0')}m netto`;
-}
-
-// ── Icon-Injektion ────────────────────────────────────────
-function injectIcons() {
-  const navMap = {
-    navIconNeu:   ICONS.plus,
-    navIconEintr: ICONS.list,
-    navIconUeber: ICONS.calendar,
-    navIconMehr:  ICONS.dots,
-    miClock:      ICONS.clock,
-    miChart:      ICONS.chart,
-    miSettings:   ICONS.settings,
-    miUser:       ICONS.user,
-    miCloud:      ICONS.cloud,
-    miPdf:        ICONS.pdf,
-    miDownload:   ICONS.download,
-  };
-  Object.entries(navMap).forEach(([id, svg]) => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = svg;
-  });
-  // Event-Listener für Live-Dauerberechnung
-  ['quickFrom','quickTo','quickBreak'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', () => updateDurPreview('quickFrom','quickTo','quickBreak','quickDurPreview'));
-  });
-  ['editFrom','editTo','editBreak'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', () => updateDurPreview('editFrom','editTo','editBreak','editDurPreview'));
-  });
-}
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', injectIcons);
-} else {
-  setTimeout(injectIcons, 0);
+// ============================================================
+//  SECURITY HELPERS
+// ============================================================
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
 }
 
 // ============================================================
@@ -2054,7 +2059,7 @@ function addManualEntry() {
   const date = document.getElementById('manDate').value;
   const from = document.getElementById('manFrom').value;
   const to = document.getElementById('manTo').value;
-  if (!date || !from || !to) { showToast('Bitte Datum, Von und Bis ausfüllen.', 'error'); return; }
+  if (!date || !from || !to) { alert('Bitte Datum, Von und Bis ausfüllen.'); return; }
   // Prüfe ob Bis vor Von liegt
   const _fMins = parseInt(from.split(':')[0])*60 + parseInt(from.split(':')[1]);
   const _tMins = parseInt(to.split(':')[0])*60 + parseInt(to.split(':')[1]);
@@ -2079,12 +2084,38 @@ function addManualEntry() {
   document.getElementById('manBreak').value = '0';
 }
 
+// ============================================================
+//  AUTO-SYNC
+// ============================================================
+const AUTO_SYNC_KEY = 'blitz_auto_sync';
+function getAutoSyncEnabled() { return localStorage.getItem(AUTO_SYNC_KEY) === 'true'; }
+function setAutoSyncEnabled(v) { localStorage.setItem(AUTO_SYNC_KEY, v ? 'true' : 'false'); }
+
+// ============================================================
+//  ÜBERLAPPUNGSCHECK
+// ============================================================
+function findOverlappingEntries(entry, excludeId = null) {
+  function toMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+  const nFrom = toMin(entry.from), nTo = toMin(entry.to);
+  return data.entries.filter(e => {
+    if (String(e.id) === String(excludeId)) return false;
+    if (e.date !== entry.date) return false;
+    return toMin(e.from) < nTo && toMin(e.to) > nFrom;
+  });
+}
+
 function addEntry(e) {
-  e.id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+  e.id = Date.now() + Math.random();
+  // Überlappungswarnung
+  const overlaps = findOverlappingEntries(e, e.id);
+  if (overlaps.length > 0) {
+    showToast(`⚠ Zeitüberschneidung mit ${overlaps.map(o => o.from + '–' + o.to).join(', ')}`, 'error');
+  }
   data.entries.unshift(e);
   data.entries.sort((a, b) => (b.date + b.from).localeCompare(a.date + a.from));
   save();
   renderSaldo();
+  if (getAutoSyncEnabled()) syncNow();
 }
 
 // deleteEntry + duplicateEntry defined below
@@ -2143,15 +2174,18 @@ function getFilteredEntries() {
 function renderEntryCard(e) {
   const dur = calcDuration(e.from, e.to, e.breakMin);
   const breakInfo = e.breakMin > 0 ? `<div class="entry-break">${e.breakMin}min Pause</div>` : '';
-  const titleStr = e.title ? `<div class="entry-title">${e.title}</div>` : '';
-  const noteStr = e.note ? `<div class="entry-desc">${e.note}</div>` : '';
-  const taskBadge = e.task ? `<span class="entry-task ${taskClass(e.task)}">${e.task}</span>` : '';
-  const loc = e.locationName && e.locationName !== '– Standort wählen –' ? e.locationName : '';
-  const cust = e.customerName && e.customerName !== '– Kunde wählen –' ? e.customerName : '–';
+  const titleStr = e.title ? `<div class="entry-title">${escapeHtml(e.title)}</div>` : '';
+  const noteStr = e.note ? `<div class="entry-desc">${escapeHtml(e.note)}</div>` : '';
+  const taskBadge = e.task ? `<span class="entry-task ${taskClass(e.task)}">${escapeHtml(e.task)}</span>` : '';
+  const loc = e.locationName && e.locationName !== '– Standort wählen –' ? escapeHtml(e.locationName) : '';
+  const cust = e.customerName && e.customerName !== '– Kunde wählen –' ? escapeHtml(e.customerName) : '–';
+  const safeFrom = escapeHtml(e.from);
+  const safeTo = escapeHtml(e.to);
+  const safeId = escapeHtml(String(e.id));
   return `
-    <div class="entry${e.transferred ? ' transferred' : ''}" id="entry-${e.id}">
+    <div class="entry${e.transferred ? ' transferred' : ''}" id="entry-${safeId}">
       <div class="entry-left">
-        <div class="entry-times">${e.from} <span>→</span> ${e.to}</div>
+        <div class="entry-times">${safeFrom} <span>→</span> ${safeTo}</div>
       </div>
       <div class="entry-meta">
         <div class="entry-customer">${cust}${loc ? ` <span style="color:var(--muted)">·</span> <span class="entry-location">${loc}</span>` : ''}</div>
@@ -2160,14 +2194,15 @@ function renderEntryCard(e) {
       <div class="entry-right">
         <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
         ${breakInfo}
-        <button class="transfer-btn ${e.transferred ? 'done' : ''}" data-transfer-id="${e.id}"
-          onclick="toggleTransferred('${e.id}')"
+        <button class="transfer-btn ${e.transferred ? 'done' : ''}" data-transfer-id="${safeId}"
+          onclick="toggleTransferred('${safeId}')"
           title="${e.transferred ? 'Als ausstehend markieren' : 'Als übertragen markieren'}">✓</button>
       </div>
       <div class="entry-actions">
-        <button class="entry-dup"    onclick="duplicateEntry('${e.id}')"  title="Kopieren">${ICONS.copy} <span class="btn-label">Kopieren</span></button>
-        <button class="entry-edit"   onclick="editEntry('${e.id}')"       title="Bearbeiten">${ICONS.edit} <span class="btn-label">Bearbeiten</span></button>
-        <button class="entry-delete" data-delete-id="${e.id}" onclick="deleteEntry('${e.id}')" title="Löschen">${ICONS.trash} <span class="btn-label">Löschen</span></button>
+        <button class="entry-dup"    onclick="duplicateEntry('${safeId}')"  title="Kopieren">📋 <span class="btn-label">Kopieren</span></button>
+        <button class="entry-split"  onclick="openSplitModal('${safeId}')"  title="Aufteilen">⚡ <span class="btn-label">Aufteilen</span></button>
+        <button class="entry-edit"   onclick="editEntry('${safeId}')"       title="Bearbeiten">✎ <span class="btn-label">Bearbeiten</span></button>
+        <button class="entry-delete" data-delete-id="${safeId}" onclick="deleteEntry('${safeId}')" title="Löschen">× <span class="btn-label">Löschen</span></button>
       </div>
     </div>`;
 }
@@ -2304,7 +2339,7 @@ function populateFilterSelects() {
   const cSel = document.getElementById('filterCustomer');
   const curC = cSel.value;
   cSel.innerHTML = '<option value="">Alle Kunden</option>' +
-    data.customers.map(c => `<option value="${c.id}" ${String(c.id) === String(curC) ? 'selected' : ''}>${c.name}</option>`).join('');
+    data.customers.map(c => `<option value="${c.id}" ${c.id == curC ? 'selected' : ''}>${c.name}</option>`).join('');
 }
 
 // ============================================================
@@ -2441,7 +2476,7 @@ function renderWeekView() {
     totalWeekMins += dayMins;
     const isToday = dayStr === todayStr;
 
-    html += `<div class="week-day-col${isToday ? ' week-day-today' : ''}${dayEntries.length === 0 ? ' week-day-empty-col' : ''}">
+    html += `<div class="week-day-col${isToday ? ' week-day-today' : ''}">
       <div class="week-day-header">
         <div>
           <div class="week-day-name">${dayNames[i]}</div>
@@ -2456,13 +2491,13 @@ function renderWeekView() {
     } else {
       dayEntries.forEach(e => {
         const dur = calcDuration(e.from, e.to, e.breakMin);
-        const cust = (e.customerName && e.customerName !== '– Kunde wählen –') ? e.customerName : '–';
-        const loc = (e.locationName && e.locationName !== '– Standort wählen –') ? ` · ${e.locationName}` : '';
+        const cust = (e.customerName && e.customerName !== '– Kunde wählen –') ? escapeHtml(e.customerName) : '–';
+        const loc = (e.locationName && e.locationName !== '– Standort wählen –') ? ` · ${escapeHtml(e.locationName)}` : '';
         html += `<div class="week-entry-row">
-          <div class="week-entry-time">${e.from} → ${e.to}</div>
+          <div class="week-entry-time">${escapeHtml(e.from)} → ${escapeHtml(e.to)}</div>
           <div class="week-entry-customer">${cust}<span style="color:var(--muted);font-size:0.65rem">${loc}</span>
-            ${e.task ? `<span class="entry-task ${taskClass(e.task)}" style="margin-left:0.3rem">${e.task}</span>` : ''}
-            ${e.title ? `<div style="font-size:0.7rem;color:var(--text);margin-top:0.15rem">${e.title}</div>` : ''}
+            ${e.task ? `<span class="entry-task ${taskClass(e.task)}" style="margin-left:0.3rem">${escapeHtml(e.task)}</span>` : ''}
+            ${e.title ? `<div style="font-size:0.7rem;color:var(--text);margin-top:0.15rem">${escapeHtml(e.title)}</div>` : ''}
           </div>
           <div class="week-entry-dur">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
         </div>`;
@@ -2750,7 +2785,7 @@ function deleteCustomer(id) {
 function addLocation() {
   const customerId = document.getElementById('newLocationCustomer').value;
   const name = document.getElementById('newLocation').value.trim();
-  if (!customerId || !name) { showToast('Bitte Kunde und Standortname angeben.', 'error'); return; }
+  if (!customerId || !name) { alert('Bitte Kunde und Standortname angeben.'); return; }
   data.locations.push({ id: Date.now() + '', customerId, name });
   document.getElementById('newLocation').value = '';
   save(); renderStammdaten();
@@ -2948,7 +2983,7 @@ function exportPDF(fromDate, toDate, customerId) {
   if (toDate)     filtered = filtered.filter(e => e.date <= toDate);
   if (customerId) filtered = filtered.filter(e => String(e.customerId) === String(customerId));
 
-  if (filtered.length === 0) { showToast('Keine Einträge für diesen Zeitraum.', 'error'); return; }
+  if (filtered.length === 0) { alert('Keine Eintr\u00e4ge f\u00fcr den gew\u00e4hlten Zeitraum.'); return; }
 
   const totalMins = filtered.reduce((s, e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const totalH = Math.floor(totalMins / 60);
@@ -3111,8 +3146,7 @@ function getSupabase() {
     if (profile) {
       currentUser = { id: profile.id, code: profile.code, name: profile.name, role: profile.role };
       updateAdminUI(); updateSyncTab(); renderSyncPage();
-      syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); })
-    .catch(err => console.warn('Sync-Fehler:', err));
+      syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
       setupRealtimeSync();
     } else {
       localStorage.removeItem('blitz_user_code'); localStorage.removeItem('blitz_user_id');
@@ -3167,6 +3201,16 @@ function renderSyncPage() {
     document.getElementById('syncUserRole').textContent = currentUser.role === 'admin' ? 'Admin' : 'Mitarbeiter';
     document.getElementById('syncEntryCount').textContent = data.entries.length;
     setSyncStatus('ok', 'Angemeldet als ' + currentUser.name);
+  }
+  // Auto-Sync Toggle-Status wiederherstellen
+  const toggle = document.getElementById('autoSyncToggle');
+  const slider = document.getElementById('autoSyncSlider');
+  const knob   = document.getElementById('autoSyncKnob');
+  if (toggle) {
+    const on = getAutoSyncEnabled();
+    toggle.checked = on;
+    if (slider) slider.style.background = on ? 'var(--accent)' : 'var(--border)';
+    if (knob)   knob.style.transform    = on ? 'translateX(16px)' : 'translateX(0)';
   }
 }
 
@@ -3483,6 +3527,28 @@ function save() {
 // ============================================================
 //  PIN LOCK
 // ============================================================
+const PIN_MAX_ATTEMPTS = 5;
+const PIN_LOCKOUT_MS   = 5 * 60 * 1000; // 5 Minuten
+
+function isPinLockedOut() {
+  return Date.now() < parseInt(localStorage.getItem('blitz_pin_lockout') || '0', 10);
+}
+function getPinLockoutRemaining() {
+  return Math.max(0, Math.ceil((parseInt(localStorage.getItem('blitz_pin_lockout') || '0', 10) - Date.now()) / 1000));
+}
+function registerFailedPinAttempt() {
+  const attempts = parseInt(localStorage.getItem('blitz_pin_attempts') || '0', 10) + 1;
+  localStorage.setItem('blitz_pin_attempts', String(attempts));
+  if (attempts >= PIN_MAX_ATTEMPTS) {
+    localStorage.setItem('blitz_pin_lockout', String(Date.now() + PIN_LOCKOUT_MS));
+  }
+  return attempts;
+}
+function resetPinAttempts() {
+  localStorage.removeItem('blitz_pin_attempts');
+  localStorage.removeItem('blitz_pin_lockout');
+}
+
 let pinBuffer = '';
 let pinMode = 'unlock'; // 'unlock' | 'setup1' | 'setup2'
 let pinSetupFirst = '';
@@ -3562,15 +3628,29 @@ function updatePinDots() {
 
 function handlePinComplete() {
   if (pinMode === 'unlock') {
+    // Lockout-Prüfung
+    if (isPinLockedOut()) {
+      document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
+      document.getElementById('pinError').textContent = `Gesperrt. Bitte ${getPinLockoutRemaining()}s warten.`;
+      setTimeout(() => { pinBuffer = ''; updatePinDots(); }, 700);
+      return;
+    }
     const stored = localStorage.getItem('blitz_pin');
     if (pinHash(pinBuffer) === stored) {
       // Correct!
+      resetPinAttempts();
       document.getElementById('pinOverlay').classList.add('hidden');
       document.getElementById('appContainer').style.display = '';
     } else {
       // Wrong
+      const attempts = registerFailedPinAttempt();
       document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
-      document.getElementById('pinError').textContent = 'Falscher PIN. Bitte nochmal.';
+      if (isPinLockedOut()) {
+        document.getElementById('pinError').textContent = `Zu viele Fehlversuche. Gesperrt für 5 Minuten.`;
+      } else {
+        const remaining = PIN_MAX_ATTEMPTS - attempts;
+        document.getElementById('pinError').textContent = `Falscher PIN. Noch ${remaining} Versuch${remaining === 1 ? '' : 'e'}.`;
+      }
       setTimeout(() => {
         pinBuffer = '';
         updatePinDots();
@@ -3737,7 +3817,7 @@ function saveQuickEntry() {
   const date = document.getElementById('quickDate').value;
   const from = document.getElementById('quickFrom').value;
   const to   = document.getElementById('quickTo').value;
-  if (!date || !from || !to) { showToast('Bitte Datum, Von und Bis ausfüllen.', 'error'); return; }
+  if (!date || !from || !to) { alert('Bitte Datum, Von und Bis ausfüllen.'); return; }
   // Prüfe ob Bis vor Von liegt
   const _fMins = parseInt(from.split(':')[0])*60 + parseInt(from.split(':')[1]);
   const _tMins = parseInt(to.split(':')[0])*60 + parseInt(to.split(':')[1]);
@@ -3747,7 +3827,7 @@ function saveQuickEntry() {
   const custSel = document.getElementById('quickCustomerSel');
   if (custSel.value === '__new__') {
     const newName = document.getElementById('quickNewCustInput').value.trim();
-    if (!newName) { showToast('Bitte Kundenname eingeben.', 'error'); return; }
+    if (!newName) { alert('Bitte Kundenname eingeben.'); return; }
     const newCust = { id: String(Date.now()), name: newName };
     data.customers.push(newCust);
     _quickCustomerId = newCust.id;
@@ -3895,8 +3975,7 @@ document.addEventListener('visibilitychange', () => {
     // Pull-only wenn Tab wieder aktiv wird (mind. 60s seit letztem Sync)
     if (currentUser && !syncBusy && Date.now() - _lastSyncTs > 60000) {
       _lastSyncTs = Date.now();
-      syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); })
-    .catch(err => console.warn('Sync-Fehler:', err));
+      syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
     }
   }
 });
@@ -3904,8 +3983,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('focus', () => {
   if (currentUser && !syncBusy && Date.now() - _lastSyncTs > 60000) {
     _lastSyncTs = Date.now();
-    syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); })
-    .catch(err => console.warn('Sync-Fehler:', err));
+    syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
   }
 });
 
@@ -4036,10 +4114,16 @@ function saveEditEntry() {
   e.locationId = lSel.value;
   e.locationName = lSel.options[lSel.selectedIndex]?.text || '';
 
+  // Überlappungswarnung
+  const overlaps = findOverlappingEntries(e, e.id);
+  if (overlaps.length > 0) {
+    showToast(`⚠ Zeitüberschneidung mit ${overlaps.map(o => o.from + '–' + o.to).join(', ')}`, 'error');
+  }
   save();
   renderEntries();
   renderSaldo();
   closeEditModal();
+  if (getAutoSyncEnabled()) syncNow();
 }
 
 function deleteEntry(id) {
@@ -4057,8 +4141,13 @@ function deleteEntry(id) {
     save();
     renderEntries();
     renderSaldo();
-    clearTimeout(syncPushTimer); // cancel debounce, push tombstone immediately
-    syncPush();
+    if (getAutoSyncEnabled()) {
+      clearTimeout(syncPushTimer);
+      syncNow();
+    } else {
+      clearTimeout(syncPushTimer); // cancel debounce, push tombstone immediately
+      syncPush();
+    }
   } else {
     // Erster Klick → Bestätigung anzeigen
     btn.classList.add('confirm');
@@ -4070,6 +4159,176 @@ function deleteEntry(id) {
       if (b) { b.classList.remove('confirm'); b.textContent = '×'; }
     }, 2500);
   }
+}
+
+// ============================================================
+//  SPLIT ENTRY
+// ============================================================
+let _splitParentId = null;
+let _splitSegments = []; // [{ from, to, task, title }]
+
+function toMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function fromMin(m) { return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`; }
+
+function openSplitModal(id) {
+  const e = data.entries.find(x => String(x.id) === String(id));
+  if (!e) return;
+  _splitParentId = id;
+
+  const totalMins = calcDuration(e.from, e.to, 0).total;
+  const midMin = toMin(e.from) + Math.floor(totalMins / 2);
+
+  _splitSegments = [
+    { from: e.from, to: fromMin(midMin), task: e.task || '', title: e.title || '' },
+    { from: fromMin(midMin), to: e.to,  task: e.task || '', title: e.title || '' }
+  ];
+
+  const cust = (e.customerName && e.customerName !== '– Kunde wählen –') ? e.customerName : '–';
+  const loc  = (e.locationName && e.locationName !== '– Standort wählen –') ? ` · ${e.locationName}` : '';
+  document.getElementById('splitInfoHeader').innerHTML =
+    `<strong>${e.from} → ${e.to}</strong>  ·  ${escapeHtml(cust)}${escapeHtml(loc)}` +
+    (e.task ? `  ·  <span class="entry-task ${taskClass(e.task)}" style="display:inline">${escapeHtml(e.task)}</span>` : '');
+
+  renderSplitSegments();
+  document.getElementById('splitModalOverlay').classList.remove('hidden');
+}
+
+function closeSplitModal() {
+  document.getElementById('splitModalOverlay').classList.add('hidden');
+  _splitParentId = null;
+  _splitSegments = [];
+}
+
+function addSplitSegment() {
+  if (_splitSegments.length === 0) return;
+  const last = _splitSegments[_splitSegments.length - 1];
+  const parent = data.entries.find(x => String(x.id) === String(_splitParentId));
+  if (!parent) return;
+  const lastToMin = toMin(last.to);
+  const parentToMin = toMin(parent.to);
+  if (lastToMin >= parentToMin) {
+    showToast('Letztes Segment reicht bereits bis zum Ende.', 'error'); return;
+  }
+  const midMin = lastToMin + Math.floor((parentToMin - lastToMin) / 2);
+  last.to = fromMin(midMin);
+  _splitSegments.push({ from: fromMin(midMin), to: parent.to, task: parent.task || '', title: '' });
+  renderSplitSegments();
+}
+
+function renderSplitSegments() {
+  const list = document.getElementById('splitSegmentsList');
+  list.innerHTML = _splitSegments.map((seg, i) => `
+    <div class="split-segment">
+      <div class="split-segment-header">Segment ${i + 1}</div>
+      <div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.2rem">Von</div>
+        <input type="time" value="${seg.from}" readonly style="background:var(--surface2)">
+      </div>
+      <div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.2rem">Bis</div>
+        <input type="time" value="${seg.to}" onchange="updateSplitSegment(${i},'to',this.value)">
+      </div>
+      <div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.2rem">Tätigkeit</div>
+        <select onchange="updateSplitSegment(${i},'task',this.value)">
+          <option value="" ${!seg.task ? 'selected' : ''}>– Tätigkeit –</option>
+          <option value="Installation" ${seg.task==='Installation'?'selected':''}>Installation</option>
+          <option value="Wartung"      ${seg.task==='Wartung'?'selected':''}>Wartung</option>
+          <option value="Störung"      ${seg.task==='Störung'?'selected':''}>Störung</option>
+          <option value="Sonstiges"    ${seg.task==='Sonstiges'?'selected':''}>Sonstiges</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.2rem">Titel</div>
+        <input type="text" value="${escapeHtml(seg.title)}" placeholder="Kurzbeschreibung" onchange="updateSplitSegment(${i},'title',this.value)">
+      </div>
+    </div>`).join('');
+  updateSplitBalance();
+}
+
+function updateSplitSegment(i, field, val) {
+  _splitSegments[i][field] = val;
+  if (field === 'to' && i + 1 < _splitSegments.length) {
+    _splitSegments[i + 1].from = val;
+    renderSplitSegments();
+    return;
+  }
+  updateSplitBalance();
+}
+
+function updateSplitBalance() {
+  const parent = data.entries.find(x => String(x.id) === String(_splitParentId));
+  if (!parent) return;
+  const totalParent = calcDuration(parent.from, parent.to, 0).total;
+  const totalSegs = _splitSegments.reduce((s, seg) => s + calcDuration(seg.from, seg.to, 0).total, 0);
+  const diff = totalSegs - totalParent;
+  const el = document.getElementById('splitBalance');
+  if (diff === 0) {
+    el.className = 'split-balance ok';
+    el.textContent = `✓ Zeitbilanz korrekt: ${fmtDur(totalSegs)} (${_splitSegments.length} Segmente)`;
+  } else {
+    el.className = 'split-balance warn';
+    el.textContent = `⚠ Zeitdifferenz: ${diff > 0 ? '+' : ''}${diff}min (Summe: ${fmtDur(totalSegs)}, Original: ${fmtDur(totalParent)})`;
+  }
+}
+
+function confirmSplit() {
+  const parent = data.entries.find(x => String(x.id) === String(_splitParentId));
+  if (!parent) return;
+
+  // 1. Validierung
+  for (let i = 0; i < _splitSegments.length; i++) {
+    const seg = _splitSegments[i];
+    if (!seg.from || !seg.to) { showToast(`Segment ${i+1}: Von/Bis fehlt.`, 'error'); return; }
+    if (toMin(seg.from) >= toMin(seg.to)) { showToast(`Segment ${i+1}: Von muss vor Bis liegen.`, 'error'); return; }
+    if (i > 0 && seg.from !== _splitSegments[i-1].to) {
+      showToast(`Lücke zwischen Segment ${i} und ${i+1}.`, 'error'); return;
+    }
+  }
+  const totalParent = calcDuration(parent.from, parent.to, 0).total;
+  const totalSegs = _splitSegments.reduce((s, seg) => s + calcDuration(seg.from, seg.to, 0).total, 0);
+  if (Math.abs(totalSegs - totalParent) > 1) {
+    showToast(`Zeitbilanz stimmt nicht (Diff: ${totalSegs - totalParent}min). Bitte korrigieren.`, 'error');
+    return;
+  }
+
+  const n = _splitSegments.length;
+
+  // 2. Neue Segmente erstellen und ZUERST speichern
+  const newEntries = _splitSegments.map(seg => ({
+    id: Date.now() + Math.random(),
+    date: parent.date,
+    from: seg.from,
+    to: seg.to,
+    breakMin: 0,
+    task: seg.task,
+    title: seg.title,
+    note: parent.note || '',
+    customerId: parent.customerId,
+    customerName: parent.customerName,
+    locationId: parent.locationId,
+    locationName: parent.locationName,
+    user_code: parent.user_code,
+    transferred: false
+  }));
+
+  newEntries.forEach(e => data.entries.unshift(e));
+  data.entries.sort((a, b) => (b.date + b.from).localeCompare(a.date + a.from));
+  save(); // Checkpoint 1: neue Einträge gesichert
+
+  // 3. Original löschen
+  const originalId = _splitParentId;
+  const originalIndex = data.entries.findIndex(x => String(x.id) === String(originalId));
+  if (originalIndex !== -1) data.entries.splice(originalIndex, 1);
+  if (!data.deletedIds) data.deletedIds = [];
+  if (!data.deletedIds.includes(originalId)) data.deletedIds.push(originalId);
+  save(); // Checkpoint 2: Original gelöscht
+
+  renderEntries();
+  renderSaldo();
+  closeSplitModal();
+  showToast(`✓ In ${n} Segmente aufgeteilt`, 'success');
+  if (getAutoSyncEnabled()) syncNow();
 }
 </script>
 
@@ -4093,7 +4352,6 @@ function deleteEntry(id) {
       <div class="field">
         <label>Pause (min)</label>
         <input type="number" id="editBreak" min="0" step="5">
-        <div id="editDurPreview" style="font-size:0.7rem;color:var(--accent);min-height:1.1em;grid-column:1/-1;margin-top:-0.3rem"></div>
       </div>
       <div class="field">
         <label>Tätigkeit</label>
@@ -4129,6 +4387,23 @@ function deleteEntry(id) {
   </div>
 </div>
 
+
+<!-- =================== SPLIT MODAL =================== -->
+<div class="split-modal-overlay hidden" id="splitModalOverlay" onclick="if(event.target===this)closeSplitModal()">
+  <div class="split-modal-box">
+    <div class="split-modal-title">⚡ Eintrag aufteilen</div>
+    <div class="split-info" id="splitInfoHeader"></div>
+    <div class="split-segments" id="splitSegmentsList"></div>
+    <div class="split-balance" id="splitBalance"></div>
+    <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
+      <button class="btn-ghost" style="font-size:0.75rem" onclick="addSplitSegment()">+ Segment hinzufügen</button>
+    </div>
+    <div class="split-modal-actions">
+      <button class="btn-ghost" onclick="closeSplitModal()">Abbrechen</button>
+      <button class="btn-primary" onclick="confirmSplit()">Aufteilen</button>
+    </div>
+  </div>
+</div>
 
 <!-- =================== PDF EXPORT MODAL =================== -->
 <div id="pdfExportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:1000;align-items:center;justify-content:center;padding:1rem;overflow-y:auto">
