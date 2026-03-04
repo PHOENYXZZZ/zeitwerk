@@ -1296,7 +1296,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v53</div>
+<div class="version-badge">v53.1</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -1898,6 +1898,18 @@
 // ============================================================
 //  SECURITY HELPERS
 // ============================================================
+// Prüft ob ein String eine gültige UUID ist
+function isUUID(s) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+
+// Konvertiert alte Timestamp-IDs zu UUIDs (für Migration alter localStorage-Daten)
+function ensureUUID(id) {
+  const s = String(id);
+  if (isUUID(s)) return s;
+  return crypto.randomUUID();
+}
+
 function escapeHtml(str) {
   if (str == null) return '';
   return String(str)
@@ -3366,6 +3378,17 @@ async function syncPush() {
   setSyncStatus('busy', 'Lade hoch…');
   try {
     const uid = currentUser.id;
+    // Alte Timestamp-IDs in UUIDs migrieren (einmalig)
+    let migrated = false;
+    for (const e of data.entries) {
+      if (!isUUID(String(e.id))) { e.id = ensureUUID(e.id); migrated = true; }
+      if (e.customerId && !isUUID(String(e.customerId))) { e.customerId = ensureUUID(e.customerId); migrated = true; }
+      if (e.locationId && !isUUID(String(e.locationId))) { e.locationId = ensureUUID(e.locationId); migrated = true; }
+    }
+    for (const c of data.customers) { if (!isUUID(String(c.id))) { c.id = ensureUUID(c.id); migrated = true; } }
+    for (const l of data.locations) { if (!isUUID(String(l.id))) { l.id = ensureUUID(l.id); migrated = true; } }
+    data.deletedIds = (data.deletedIds || []).filter(id => isUUID(String(id)));
+    if (migrated) localStorage.setItem('blitz_v2', JSON.stringify(data));
     const allEntries = [
       ...data.entries.map(e => ({
         id: String(e.id), date: e.date,
