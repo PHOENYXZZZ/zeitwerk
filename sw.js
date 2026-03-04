@@ -1,4 +1,4 @@
-const CACHE = 'blitz-v51';
+const CACHE = 'blitz-v52';
 const ASSETS = ['./'];
 
 self.addEventListener('install', event => {
@@ -23,19 +23,20 @@ self.addEventListener('activate', event => {
   );
 });
 
+// Network-First: immer zuerst vom Netz laden, nur bei Offline den Cache nutzen
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith(self.location.origin)) return;
 
   event.respondWith(
-    caches.open(CACHE).then(cache =>
-      cache.match(event.request).then(cached => {
-        const network = fetch(event.request).then(response => {
-          if (response.ok) cache.put(event.request, response.clone());
-          return response;
-        }).catch(() => cached);
-        return cached || network;
+    fetch(event.request)
+      .then(response => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE).then(cache => cache.put(event.request, clone));
+        }
+        return response;
       })
-    )
+      .catch(() => caches.match(event.request))
   );
 });
