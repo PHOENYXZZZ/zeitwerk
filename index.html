@@ -1296,7 +1296,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v52</div>
+<div class="version-badge">v53</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -3216,14 +3216,14 @@ function getSupabase() {
 }
 
 
-// Restore session from localStorage (no Supabase Auth needed)
+// Restore session from localStorage via secure RPC
 (function restoreSession() {
   const sb = getSupabase();
   const savedCode = localStorage.getItem('blitz_user_code');
   const savedId   = localStorage.getItem('blitz_user_id');
   if (!savedCode || !savedId) { renderSyncPage(); return; }
-  sb.from('profiles').select('*').eq('code', savedCode).single().then(({ data: profile }) => {
-    if (profile) {
+  sb.rpc('login_with_code', { p_code: savedCode }).then(({ data: profile, error }) => {
+    if (profile && !error) {
       currentUser = { id: profile.id, code: profile.code, name: profile.name, role: profile.role };
       updateAdminUI(); updateSyncTab(); renderSyncPage();
       syncPull().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
@@ -3303,7 +3303,7 @@ async function loginWithCode() {
   if (!sb) return;
   setSyncStatus('busy', 'Anmelden…');
   try {
-    const { data: profile, error } = await sb.from('profiles').select('*').eq('code', code).single();
+    const { data: profile, error } = await sb.rpc('login_with_code', { p_code: code });
     if (error || !profile) throw new Error('Unbekannter Code – bitte Administrator kontaktieren');
     const previousUserId = localStorage.getItem('blitz_user_id');
     currentUser = { id: profile.id, code: profile.code, name: profile.name, role: profile.role };
@@ -3348,6 +3348,10 @@ async function logout() {
   // Lokalen Cache leeren damit beim nächsten Login keine fremden Daten auftauchen
   data = { entries: [], customers: [], locations: [], deletedIds: [] };
   localStorage.setItem('blitz_v2', JSON.stringify(data));
+  // SW-Cache leeren damit keine sensiblen Daten im Browser verbleiben
+  if ('caches' in window) {
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
   setSyncStatus('idle', 'Nicht angemeldet');
   updateSyncTab();
   renderSyncPage();
@@ -3384,20 +3388,20 @@ async function syncPush() {
       });
       if (error) throw error;
     }
-    // Kunden: erst alle löschen, dann aktuellen Stand einfügen (verhindert Geister-Einträge)
-    await sb.from('customers').delete().eq('user_id', uid);
-    if (data.customers.length > 0) {
-      const { error } = await sb.from('customers').insert(data.customers.map(c => ({
-        id: String(c.id), user_id: uid, name: c.name
-      })));
+    // Kunden über sichere RPC synchronisieren
+    {
+      const { error } = await sb.rpc('sync_customers_for_code', {
+        p_code: currentUser.code,
+        p_customers: data.customers.map(c => ({ id: String(c.id), name: c.name }))
+      });
       if (error) throw error;
     }
-    // Standorte: gleiche Logik
-    await sb.from('locations').delete().eq('user_id', uid);
-    if (data.locations.length > 0) {
-      const { error } = await sb.from('locations').insert(data.locations.map(l => ({
-        id: String(l.id), user_id: uid, customer_id: l.customerId || null, name: l.name
-      })));
+    // Standorte über sichere RPC synchronisieren
+    {
+      const { error } = await sb.rpc('sync_locations_for_code', {
+        p_code: currentUser.code,
+        p_locations: data.locations.map(l => ({ id: String(l.id), customer_id: l.customerId || null, name: l.name }))
+      });
       if (error) throw error;
     }
     const ts = new Date().toLocaleTimeString('de-DE');
@@ -3424,8 +3428,8 @@ async function syncPull() {
     const rpcParam = currentUser.role === 'admin' ? { p_admin_code: currentUser.code } : { p_code: currentUser.code };
     const [{ data: allEntriesRaw, error: eErr }, { data: custsRaw, error: cErr }, { data: locsRaw, error: lErr }] = await Promise.all([
       sb.rpc(rpcName, rpcParam),
-      sb.from('customers').select('*').eq('user_id', uid),
-      sb.from('locations').select('*').eq('user_id', uid)
+      sb.rpc('get_customers_for_code', { p_code: currentUser.code }),
+      sb.rpc('get_locations_for_code', { p_code: currentUser.code })
     ]);
     if (eErr) throw eErr;
     if (cErr) throw cErr;
@@ -3488,9 +3492,9 @@ async function renderBenutzerPage() {
   const container = document.getElementById('benutzerList');
   if (!container) return;
   container.innerHTML = '<div style="color:var(--muted);padding:1rem 0;text-align:center">Lade…</div>';
-  const { data: users, error } = await sb.from('profiles').select('*').order('name');
+  const { data: users, error } = await sb.rpc('get_all_users_admin', { p_admin_code: currentUser.code });
   if (error) { container.innerHTML = `<div style="color:var(--red)">${escapeHtml(error.message)}</div>`; return; }
-  container.innerHTML = users.map(u => `
+  container.innerHTML = (users || []).map(u => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid var(--border)">
       <div>
         <div style="font-weight:500">${escapeHtml(u.name)}</div>
@@ -3509,9 +3513,12 @@ async function addUser() {
   err.style.display = 'none'; ok.style.display = 'none';
   if (!code || !name) { err.textContent = 'Bitte Code und Name eingeben.'; err.style.display = ''; return; }
   const sb = getSupabase();
-  const { error } = await sb.from('profiles').insert({ code, name, role });
+  const { data: result, error } = await sb.rpc('admin_create_user', {
+    p_admin_code: currentUser.code, p_code: code, p_name: name, p_role: role
+  });
   if (error) {
-    err.textContent = error.message.includes('unique') ? `Code "${code}" ist bereits vergeben.` : error.message;
+    err.textContent = error.message.includes('unique') || error.message.includes('duplicate')
+      ? `Code "${code}" ist bereits vergeben.` : error.message;
     err.style.display = '';
   } else {
     ok.textContent = `✓ ${name} wurde angelegt. Code: ${code}`;
@@ -3526,7 +3533,7 @@ async function deleteUser(id, btn) {
   const name = btn.closest('div[style]')?.querySelector('div[style*="font-weight"]')?.textContent || 'Benutzer';
   if (!confirm(`${name} wirklich löschen? Alle Einträge dieser Person werden ebenfalls gelöscht.`)) return;
   const sb = getSupabase();
-  const { error } = await sb.from('profiles').delete().eq('id', id);
+  const { error } = await sb.rpc('admin_delete_user', { p_admin_code: currentUser.code, p_user_id: id });
   if (error) { alert('Fehler: ' + error.message); return; }
   renderBenutzerPage();
 }
@@ -3555,13 +3562,9 @@ async function renderTeamPage() {
   if (!container) return;
   container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:2rem">Lade…</div>';
 
-  const { data: allEntries, error } = await sb
-    .from('entries')
-    .select('*, profiles!entries_user_id_fkey(name)')
-    .eq('deleted', false)
-    .gte('date', month + '-01')
-    .lte('date', month + '-31')
-    .order('date', { ascending: false });
+  const { data: allEntries, error } = await sb.rpc('get_team_entries_admin', {
+    p_admin_code: currentUser.code, p_month: month
+  });
 
   if (error) {
     container.innerHTML = `<div style="color:var(--red)">Fehler: ${escapeHtml(error.message)}</div>`;
@@ -3570,7 +3573,7 @@ async function renderTeamPage() {
 
   const byUser = {};
   for (const e of (allEntries || [])) {
-    const name = e.profiles?.name || 'Unbekannt';
+    const name = e.user_name || 'Unbekannt';
     if (!byUser[name]) byUser[name] = [];
     byUser[name].push(e);
   }
@@ -3591,7 +3594,7 @@ async function renderTeamPage() {
     const pending = entries.filter(e => !e.transferred).length;
     html += `<div class="panel" style="margin-bottom:0.75rem">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-weight:500;font-size:0.95rem">${name}</div>
+        <div style="font-weight:500;font-size:0.95rem">${escapeHtml(name)}</div>
         <div style="color:var(--accent);font-family:'DM Mono',monospace;font-size:1.1rem">${h}h ${String(m).padStart(2,'0')}m</div>
       </div>
       <div style="color:var(--muted);font-size:0.72rem;margin-top:0.3rem">
