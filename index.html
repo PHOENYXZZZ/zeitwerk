@@ -1952,6 +1952,15 @@ function load() {
   const saved = localStorage.getItem('blitz_v2');
   if (saved) data = JSON.parse(saved);
   data.deletedIds = data.deletedIds || [];
+  // Migration: Nummer-IDs → UUIDs
+  let migrated = false;
+  for (const e of (data.entries || [])) {
+    if (typeof e.id === 'number' || (typeof e.id === 'string' && /^\d/.test(e.id))) {
+      e.id = crypto.randomUUID();
+      migrated = true;
+    }
+  }
+  if (migrated) { data.deletedIds = []; localStorage.setItem('blitz_v2', JSON.stringify(data)); }
 }
 function save() { localStorage.setItem('blitz_v2', JSON.stringify(data)); }
 
@@ -2157,7 +2166,7 @@ function findOverlappingEntries(entry, excludeId = null) {
 }
 
 function addEntry(e) {
-  e.id = Date.now() + Math.random();
+  e.id = crypto.randomUUID();
   // Überlappungswarnung
   const overlaps = findOverlappingEntries(e, e.id);
   if (overlaps.length > 0) {
@@ -4370,7 +4379,7 @@ function confirmSplit() {
 
   // 2. Neue Segmente erstellen und ZUERST speichern
   const newEntries = _splitSegments.map(seg => ({
-    id: Date.now() + Math.random(),
+    id: crypto.randomUUID(),
     date: parent.date,
     from: seg.from,
     to: seg.to,
