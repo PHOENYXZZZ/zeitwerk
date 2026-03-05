@@ -3464,15 +3464,16 @@ function deduplicateLocalEntries() {
 
 async function syncPull() {
   if (!currentUser) return;
+  if (syncBusy) return; // verhindert parallele Pulls (z.B. via Realtime-Trigger)
   const sb = getSupabase();
   if (!sb) return;
   syncBusy = true;
   setSyncStatus('busy', 'Lade Daten…');
-  let hadDuplicates = false;
   try {
     const uid = currentUser.id;
-    const rpcName  = currentUser.role === 'admin' ? 'get_all_entries_admin' : 'get_entries_for_code';
-    const rpcParam = currentUser.role === 'admin' ? { p_admin_code: currentUser.code } : { p_code: currentUser.code };
+    // Admins sehen in ihrer eigenen Übersicht nur ihre eigenen Einträge (get_entries_for_code)
+    const rpcName  = 'get_entries_for_code';
+    const rpcParam = { p_code: currentUser.code };
     const [{ data: allEntriesRaw, error: eErr }, { data: custsRaw, error: cErr }, { data: locsRaw, error: lErr }] = await Promise.all([
       sb.rpc(rpcName, rpcParam),
       sb.rpc('get_customers_for_code', { p_code: currentUser.code }),
@@ -3483,11 +3484,11 @@ async function syncPull() {
     if (lErr) throw lErr;
     // Lokale Tombstones merken, bevor wir data.deletedIds überschreiben
     const localDeletedIds = data.deletedIds || [];
-    // Nur eigene Einträge (non-admin: user_id-Filter als Sicherheitsnetz gegen RPC-Bugs)
+    // user_id-Filter als Sicherheitsnetz gegen RPC-Bugs (nur wenn user_id im Response vorhanden)
     const allRaw = allEntriesRaw || [];
-    const entriesRaw = allRaw.filter(e => !e.deleted && (currentUser.role === 'admin' || e.user_id === currentUser.id));
-    const deletedRaw = allRaw.filter(e => e.deleted && (currentUser.role === 'admin' || e.user_id === currentUser.id));
-    // Dedup by ID (server-seitige Duplikate verhindern)
+    const entriesRaw = allRaw.filter(e => !e.deleted && (!e.user_id || e.user_id === currentUser.id));
+    const deletedRaw = allRaw.filter(e => e.deleted && (!e.user_id || e.user_id === currentUser.id));
+    // Dedup by ID (server-seitige ID-Duplikate verhindern)
     const seenIds = new Set();
     const uniqueEntries = entriesRaw.filter(e => {
       if (seenIds.has(e.id)) return false;
@@ -3503,8 +3504,8 @@ async function syncPull() {
     data.locations = (locsRaw || []).map(l => ({ id: l.id, customerId: l.customer_id, name: l.name }));
     // deletedIds MERGEN statt überschreiben (lokale Tombstones dürfen nicht verloren gehen)
     data.deletedIds = [...new Set([...localDeletedIds, ...(deletedRaw || []).map(e => e.id)])];
-    // Content-basierte Duplikatbereinigung (One-Time Cleanup)
-    hadDuplicates = deduplicateLocalEntries();
+    // Content-basierte Duplikatbereinigung (lokaler Cleanup, Tombstones werden beim nächsten Push übertragen)
+    deduplicateLocalEntries();
     localStorage.setItem('blitz_v2', JSON.stringify(data));
     renderEntries();
     renderSaldo();
@@ -3518,8 +3519,6 @@ async function syncPull() {
     setSyncStatus('error', 'Download fehlgeschlagen: ' + e.message);
   }
   syncBusy = false;
-  // Duplikat-Tombstones auf Server propagieren
-  if (hadDuplicates) await syncPush();
 }
 
 async function syncNow() {
