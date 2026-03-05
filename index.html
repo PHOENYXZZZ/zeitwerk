@@ -1315,7 +1315,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v53.1</div>
+<div class="version-badge">v55</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -1908,18 +1908,6 @@
           <button class="btn-primary" onclick="syncNow()">⟳ Jetzt synchronisieren</button>
           <button class="btn-danger" onclick="logout()">✕ Abmelden</button>
         </div>
-        <div style="display:flex;align-items:center;gap:0.75rem;margin-top:1rem">
-          <label class="auto-sync-toggle" for="autoSyncToggle" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.75rem;color:var(--muted)">
-            <div style="position:relative;width:36px;height:20px">
-              <input type="checkbox" id="autoSyncToggle" style="opacity:0;width:0;height:0;position:absolute"
-                onchange="setAutoSyncEnabled(this.checked);document.getElementById('autoSyncSlider').style.background=this.checked?'var(--accent)':'var(--border)';document.getElementById('autoSyncKnob').style.transform=this.checked?'translateX(16px)':'translateX(0)'">
-              <div id="autoSyncSlider" style="position:absolute;inset:0;border-radius:10px;background:var(--border);transition:background 0.2s"></div>
-              <div id="autoSyncKnob" style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.25)"></div>
-            </div>
-            Auto-Sync
-          </label>
-          <span style="font-size:0.68rem;color:var(--muted)">Neue Einträge automatisch synchronisieren</span>
-        </div>
       </div>
     </div>
   </div>
@@ -2261,6 +2249,11 @@ function findOverlappingEntries(entry, excludeId = null) {
 
 function addEntry(e) {
   e.id = crypto.randomUUID();
+  // UserId setzen damit Einträge korrekt zugeordnet werden
+  if (currentUser) {
+    e.userId = currentUser.id;
+    e.userName = currentUser.name;
+  }
   // Überlappungswarnung
   const overlaps = findOverlappingEntries(e, e.id);
   if (overlaps.length > 0) {
@@ -2270,7 +2263,6 @@ function addEntry(e) {
   data.entries.sort((a, b) => (b.date + b.from).localeCompare(a.date + a.from));
   save();
   renderSaldo();
-  if (getAutoSyncEnabled()) syncNow();
 }
 
 // deleteEntry + duplicateEntry defined below
@@ -3469,16 +3461,6 @@ function renderSyncPage() {
     document.getElementById('syncEntryCount').textContent = data.entries.length;
     setSyncStatus('ok', 'Angemeldet als ' + currentUser.name);
   }
-  // Auto-Sync Toggle-Status wiederherstellen
-  const toggle = document.getElementById('autoSyncToggle');
-  const slider = document.getElementById('autoSyncSlider');
-  const knob   = document.getElementById('autoSyncKnob');
-  if (toggle) {
-    const on = getAutoSyncEnabled();
-    toggle.checked = on;
-    if (slider) slider.style.background = on ? 'var(--accent)' : 'var(--border)';
-    if (knob)   knob.style.transform    = on ? 'translateX(16px)' : 'translateX(0)';
-  }
 }
 
 async function loginWithCode() {
@@ -3639,13 +3621,35 @@ async function syncPull() {
     if (lErr) throw lErr;
     const entriesRaw = (allEntriesRaw || []).filter(e => !e.deleted);
     const deletedRaw = (allEntriesRaw || []).filter(e => e.deleted);
-    data.entries = (entriesRaw || []).map(e => ({
+    let mappedEntries = (entriesRaw || []).map(e => ({
       id: e.id, date: e.date, from: e.from_time, to: e.to_time,
       breakMin: e.break_min, customerId: e.customer_id, customerName: e.customer_name,
       locationId: e.location_id, locationName: e.location_name,
       task: e.task, title: e.title, note: e.note, transferred: e.transferred,
       userId: e.user_id || null, userName: e.user_name || null
     }));
+    // Deduplizierung: gleiche Einträge (Datum+Zeit+Kunde+Aufgabe) unter verschiedenen Usern → nur Original behalten
+    if (currentUser && currentUser.role === 'admin') {
+      const seen = new Map();
+      const dupes = [];
+      for (const e of mappedEntries) {
+        const key = `${e.date}|${e.from}|${e.to}|${e.customerName || ''}|${e.task || ''}`;
+        if (!seen.has(key)) {
+          seen.set(key, e);
+        } else {
+          const prev = seen.get(key);
+          // Wenn gleicher User → kein Duplikat (verschiedene Einträge am gleichen Tag sind ok)
+          if (prev.userId === e.userId) continue;
+          // Admin-Kopie ist das Duplikat → entfernen
+          if (e.userId === currentUser.id) { dupes.push(e.id); }
+          else if (prev.userId === currentUser.id) { dupes.push(prev.id); seen.set(key, e); }
+        }
+      }
+      if (dupes.length > 0) {
+        mappedEntries = mappedEntries.filter(e => !dupes.includes(e.id));
+      }
+    }
+    data.entries = mappedEntries;
     data.customers = (custsRaw || []).map(c => ({ id: c.id, name: c.name }));
     data.locations = (locsRaw || []).map(l => ({ id: l.id, customerId: l.customer_id, name: l.name }));
     data.deletedIds = (deletedRaw || []).map(e => e.id);
@@ -4445,13 +4449,8 @@ function deleteEntry(id) {
     save();
     renderEntries();
     renderSaldo();
-    if (getAutoSyncEnabled()) {
-      clearTimeout(syncPushTimer);
-      syncNow();
-    } else {
-      clearTimeout(syncPushTimer); // cancel debounce, push tombstone immediately
-      syncPush();
-    }
+    clearTimeout(syncPushTimer); // cancel debounce, push tombstone immediately
+    syncPush();
   } else {
     // Erster Klick → Bestätigung anzeigen
     btn.classList.add('confirm');
