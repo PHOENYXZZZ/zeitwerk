@@ -242,6 +242,23 @@
   .section-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
   .week-summary { font-size: 0.75rem; color: var(--accent); }
 
+  /* ADMIN VIEW TOGGLE */
+  .admin-view-toggle {
+    display: flex; gap: 0; margin: 0 0 0.75rem;
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .avt-btn {
+    flex: 1; padding: 0.45rem 0.8rem; font-size: 0.72rem; font-family: 'DM Mono', monospace;
+    background: transparent; border: none; color: var(--muted); cursor: pointer;
+    transition: background 0.15s, color 0.15s; letter-spacing: 0.5px;
+  }
+  .avt-btn.active { background: var(--accent); color: #fff; }
+  .avt-btn:not(.active):hover { background: var(--surface2); }
+  .entry-user-tag {
+    font-size: 0.65rem; color: var(--accent); font-weight: 500;
+    margin-bottom: 0.1rem; letter-spacing: 0.3px;
+  }
+
   /* FILTER BAR */
   .filter-bar { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; }
   .filter-search { flex: 1; font-size: 0.8rem; }
@@ -360,6 +377,8 @@
   .task-installation { background: rgba(107,207,151,0.15); color: var(--green); border: 1px solid var(--green); }
   .task-wartung { background: rgba(91,155,213,0.15); color: var(--blue); border: 1px solid var(--blue); }
   .task-stoerung { background: rgba(235,87,87,0.15); color: var(--red); border: 1px solid var(--red); }
+  .task-urlaub { background: rgba(255,183,77,0.18); color: #e6a000; border: 1px solid #e6a000; }
+  .task-krank { background: rgba(156,39,176,0.15); color: #ab47bc; border: 1px solid #ab47bc; }
   .task-other { background: rgba(196,149,106,0.15); color: var(--accent2); border: 1px solid var(--accent2); }
 
   .entry-duration {
@@ -1406,6 +1425,8 @@
               <option value="Inbetriebnahme">Inbetriebnahme</option>
               <option value="Planung">Planung</option>
               <option value="Sonstiges">Sonstiges</option>
+              <option value="Urlaub">Urlaub</option>
+              <option value="Krank">Krank</option>
             </select>
           </div>
           <div class="field" style="grid-column:1/-1">
@@ -1541,6 +1562,8 @@
             <option value="Inbetriebnahme">Inbetriebnahme</option>
             <option value="Planung">Planung</option>
             <option value="Sonstiges">Sonstiges</option>
+            <option value="Urlaub">Urlaub</option>
+            <option value="Krank">Krank</option>
           </select>
         </div>
       </div>
@@ -1585,6 +1608,12 @@
         </div>
         <div style="font-size:0.65rem;color:var(--muted);margin-top:0.2rem" id="saldoSollSub"></div>
       </div>
+      <div class="saldo-divider"></div>
+      <div class="saldo-item">
+        <div class="saldo-label">Urlaub</div>
+        <div class="saldo-val saldo-neutral" id="saldoUrlaubVal">–</div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:0.2rem" id="saldoUrlaubSub"></div>
+      </div>
     </div>
 
     <!-- Manual Entry -->
@@ -1628,6 +1657,8 @@
             <option value="Inbetriebnahme">Inbetriebnahme</option>
             <option value="Planung">Planung</option>
             <option value="Sonstiges">Sonstiges</option>
+            <option value="Urlaub">Urlaub</option>
+            <option value="Krank">Krank</option>
           </select>
         </div>
         <div class="field" style="grid-column: 1 / -1">
@@ -1652,6 +1683,11 @@
       <span class="week-summary" id="weekSummary"></span>
     </div>
 
+    <div id="adminViewToggle" class="admin-view-toggle no-print" style="display:none">
+      <button class="avt-btn active" id="avtMine" onclick="setAdminView(false)">Meine Einträge</button>
+      <button class="avt-btn" id="avtAll" onclick="setAdminView(true)">Alle Einträge</button>
+    </div>
+
     <div class="filter-bar no-print">
       <input type="search" id="filterSearch" class="filter-search" placeholder="Suchen…" oninput="renderEntries()">
       <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">Filter</button>
@@ -1672,6 +1708,8 @@
         <option value="Inbetriebnahme">Inbetriebnahme</option>
         <option value="Planung">Planung</option>
         <option value="Sonstiges">Sonstiges</option>
+        <option value="Urlaub">Urlaub</option>
+        <option value="Krank">Krank</option>
       </select>
       <select id="filterTransferred" onchange="renderEntries()">
         <option value="">Alle Berichte</option>
@@ -1788,6 +1826,31 @@
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Arbeitszeit-Einstellungen -->
+    <div class="panel" style="margin-top:1rem">
+      <div class="panel-title">Arbeitszeit</div>
+      <div style="display:flex;flex-direction:column;gap:0.75rem">
+        <div class="field">
+          <label>Wochensoll (Stunden)</label>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <input type="number" id="stammWochensoll" min="1" max="60" step="0.5"
+              style="width:80px" oninput="updateWochensollFromStamm(this.value)">
+            <span style="font-size:0.72rem;color:var(--muted)">h / Woche</span>
+          </div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:0.3rem" id="stammSollInfo"></div>
+        </div>
+        <div class="field">
+          <label>Urlaubstage pro Jahr</label>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <input type="number" id="stammUrlaubstage" min="0" max="60" step="1"
+              style="width:80px" oninput="updateUrlaubstage(this.value)">
+            <span style="font-size:0.72rem;color:var(--muted)">Tage / Jahr</span>
+          </div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:0.3rem" id="stammUrlaubInfo"></div>
+        </div>
       </div>
     </div>
 
@@ -2044,7 +2107,7 @@ function showPage(id) {
   if (id === 'benutzer')   { renderBenutzerPage(); }
   if (id === 'uebersicht') { renderUebersicht(); }
   if (id === 'auswertung') { populateStatsMonths(); renderStats(); }
-  if (id === 'stammdaten') { renderStammdaten(); updatePinSettingsUI(); }
+  if (id === 'stammdaten') { renderStammdaten(); updatePinSettingsUI(); initStammArbeitszeit(); }
 }
 
 // ============================================================
@@ -2237,19 +2300,41 @@ function taskClass(task) {
   if (t.includes('install')) return 'task-installation';
   if (t.includes('wart')) return 'task-wartung';
   if (t.includes('stör') || t.includes('stor')) return 'task-stoerung';
+  if (t.includes('urlaub')) return 'task-urlaub';
+  if (t.includes('krank')) return 'task-krank';
   return 'task-other';
 }
 
 // ============================================================
 //  RENDER ENTRIES
 // ============================================================
+function getOwnEntries() {
+  if (!currentUser || currentUser.role !== 'admin' || adminShowAll) {
+    return data.entries;
+  }
+  return data.entries.filter(e => e.userId === currentUser.id || !e.userId);
+}
+
+function setAdminView(showAll) {
+  adminShowAll = showAll;
+  document.getElementById('avtMine')?.classList.toggle('active', !showAll);
+  document.getElementById('avtAll')?.classList.toggle('active', showAll);
+  renderEntries();
+  renderSaldo();
+  renderUebersicht();
+  renderStats();
+  populateStatsMonths();
+  renderQuickSaldo();
+  renderMehrSaldo();
+}
+
 function getFilteredEntries() {
   const month       = document.getElementById('filterMonth')?.value || '';
   const customer    = document.getElementById('filterCustomer')?.value || '';
   const task        = document.getElementById('filterTask')?.value || '';
   const transferred = document.getElementById('filterTransferred')?.value || '';
   const search      = (document.getElementById('filterSearch')?.value || '').toLowerCase().trim();
-  return data.entries.filter(e => {
+  return getOwnEntries().filter(e => {
     if (month && !e.date.startsWith(month)) return false;
     if (customer && String(e.customerId) !== String(customer)) return false;
     if (task && e.task !== task) return false;
@@ -2269,6 +2354,7 @@ function renderEntryCard(e) {
   const titleStr = e.title ? `<div class="entry-title">${escapeHtml(e.title)}</div>` : '';
   const noteStr = e.note ? `<div class="entry-desc">${escapeHtml(e.note)}</div>` : '';
   const taskBadge = e.task ? `<span class="entry-task ${taskClass(e.task)}">${escapeHtml(e.task)}</span>` : '';
+  const userTag = (adminShowAll && e.userName) ? `<div class="entry-user-tag">${escapeHtml(e.userName)}</div>` : '';
   const loc = e.locationName && e.locationName !== '– Standort wählen –' ? escapeHtml(e.locationName) : '';
   const cust = e.customerName && e.customerName !== '– Kunde wählen –' ? escapeHtml(e.customerName) : '–';
   const safeFrom = escapeHtml(e.from);
@@ -2281,7 +2367,7 @@ function renderEntryCard(e) {
       </div>
       <div class="entry-meta">
         <div class="entry-customer">${cust}${loc ? ` <span style="color:var(--muted)">·</span> <span class="entry-location">${loc}</span>` : ''}</div>
-        ${taskBadge}${titleStr}${noteStr}
+        ${userTag}${taskBadge}${titleStr}${noteStr}
       </div>
       <div class="entry-right">
         <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
@@ -2309,7 +2395,7 @@ function renderEntries() {
   const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
   const monday = new Date(today); monday.setDate(today.getDate() - dow);
   const mondayStr = isoDate(monday);
-  const weekMins = data.entries.filter(e => e.date >= mondayStr)
+  const weekMins = getOwnEntries().filter(e => e.date >= mondayStr)
     .reduce((s, e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const weekSollM = getWeekSollMins(monday);
   const weekDiffM = weekMins - weekSollM;
@@ -2418,7 +2504,7 @@ function toggleFilterPanel() {
 }
 
 function populateFilterSelects() {
-  const months = [...new Set(data.entries.map(e => e.date.slice(0, 7)))].sort().reverse();
+  const months = [...new Set(getOwnEntries().map(e => e.date.slice(0, 7)))].sort().reverse();
   const mSel = document.getElementById('filterMonth');
   const cur = mSel.value;
   mSel.innerHTML = '<option value="">Alle Monate</option>' +
@@ -2443,6 +2529,12 @@ function isoDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function isAbwesenheit(task) {
+  if (!task) return false;
+  const t = task.toLowerCase();
+  return t === 'urlaub' || t === 'krank';
+}
+
 function getWeekSollMins(mondayDate) {
   // Determine how many worked weekdays in the week (up to today)
   const today = new Date(); today.setHours(0,0,0,0);
@@ -2451,7 +2543,14 @@ function getWeekSollMins(mondayDate) {
     const d = new Date(mondayDate); d.setDate(mondayDate.getDate() + i);
     if (d <= today) sollMins += WOCHENSOLL_MIN / 5;
   }
-  return sollMins;
+  // Urlaub/Krank-Tage vom Soll abziehen
+  const ownE = getOwnEntries();
+  const sundayDate = new Date(mondayDate); sundayDate.setDate(mondayDate.getDate() + 6);
+  const abwDays = new Set();
+  ownE.filter(e => e.date >= isoDate(mondayDate) && e.date <= isoDate(sundayDate) && isAbwesenheit(e.task))
+    .forEach(e => abwDays.add(e.date));
+  sollMins -= abwDays.size * (WOCHENSOLL_MIN / 5);
+  return Math.max(0, sollMins);
 }
 
 function renderSaldo() {
@@ -2459,17 +2558,18 @@ function renderSaldo() {
   const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
   const monday = new Date(today); monday.setDate(today.getDate() - dow);
 
-  // Current week
-  const weekMins = data.entries
-    .filter(e => e.date >= isoDate(monday))
+  // Current week (Urlaub/Krank nicht als Arbeitsstunden zählen)
+  const ownEntries = getOwnEntries();
+  const weekMins = ownEntries
+    .filter(e => e.date >= isoDate(monday) && !isAbwesenheit(e.task))
     .reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const weekSoll = getWeekSollMins(monday);
   const weekDiff = weekMins - weekSoll;
 
-  // Current month
+  // Current month (Urlaub/Krank nicht als Arbeitsstunden zählen)
   const mStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-  const monthMins = data.entries
-    .filter(e => e.date.startsWith(mStr))
+  const monthMins = ownEntries
+    .filter(e => e.date.startsWith(mStr) && !isAbwesenheit(e.task))
     .reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   let monthSollMins = 0;
   const cur = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -2478,6 +2578,12 @@ function renderSaldo() {
     if (d !== 0 && d !== 6) monthSollMins += WOCHENSOLL_MIN / 5;
     cur.setDate(cur.getDate() + 1);
   }
+  // Urlaub/Krank-Tage im Monat vom Soll abziehen
+  const abwMonthDays = new Set();
+  ownEntries.filter(e => e.date.startsWith(mStr) && isAbwesenheit(e.task))
+    .forEach(e => abwMonthDays.add(e.date));
+  monthSollMins -= abwMonthDays.size * (WOCHENSOLL_MIN / 5);
+  monthSollMins = Math.max(0, monthSollMins);
   const monthDiff = monthMins - monthSollMins;
 
   function fmtSaldo(mins) {
@@ -2499,6 +2605,21 @@ function renderSaldo() {
   if (ms) ms.textContent = `${fmtDur(monthMins)} von ${fmtDur(Math.round(monthSollMins))}`;
   if (ss) ss.textContent = `Mo–Fr · ${(WOCHENSOLL_MIN/5/60).toFixed(2).replace('.','.')}h/Tag`;
   if (inp && document.activeElement !== inp) inp.value = (WOCHENSOLL_MIN/60).toFixed(1);
+
+  // Urlaub-Anzeige
+  const uv = document.getElementById('saldoUrlaubVal');
+  const us = document.getElementById('saldoUrlaubSub');
+  if (uv) {
+    const y = today.getFullYear();
+    const usedDays = new Set(
+      ownEntries.filter(e => e.date.startsWith(`${y}-`) && e.task && e.task.toLowerCase() === 'urlaub')
+        .map(e => e.date)
+    ).size;
+    const remaining = URLAUBSTAGE - usedDays;
+    uv.textContent = `${usedDays} / ${URLAUBSTAGE}`;
+    uv.className = `saldo-val ${remaining > 0 ? 'saldo-neutral' : remaining === 0 ? 'saldo-neutral' : 'saldo-minus'}`;
+    if (us) us.textContent = `${remaining} Tage übrig (${y})`;
+  }
 }
 
 function updateWochensoll(val) {
@@ -2507,7 +2628,59 @@ function updateWochensoll(val) {
   WOCHENSOLL_MIN = h * 60;
   localStorage.setItem('blitz_wochensoll', h);
   renderSaldo();
-  // Update daily hint in panel without full re-render losing focus
+  // Stammdaten-Input synchron halten
+  const stammInp = document.getElementById('stammWochensoll');
+  if (stammInp && document.activeElement !== stammInp) stammInp.value = h.toFixed(1);
+  updateStammSollInfo();
+}
+
+function updateWochensollFromStamm(val) {
+  const h = parseFloat(val);
+  if (isNaN(h) || h <= 0) return;
+  WOCHENSOLL_MIN = h * 60;
+  localStorage.setItem('blitz_wochensoll', h);
+  renderSaldo();
+  renderQuickSaldo();
+  renderMehrSaldo();
+  // Saldo-Panel-Input synchron halten
+  const saldoInp = document.getElementById('wochensollInput');
+  if (saldoInp && document.activeElement !== saldoInp) saldoInp.value = h.toFixed(1);
+  updateStammSollInfo();
+}
+
+let URLAUBSTAGE = parseInt(localStorage.getItem('blitz_urlaubstage')) || 30;
+
+function updateUrlaubstage(val) {
+  const d = parseInt(val);
+  if (isNaN(d) || d < 0) return;
+  URLAUBSTAGE = d;
+  localStorage.setItem('blitz_urlaubstage', d);
+  updateStammUrlaubInfo();
+}
+
+function initStammArbeitszeit() {
+  const wInp = document.getElementById('stammWochensoll');
+  if (wInp) wInp.value = (WOCHENSOLL_MIN/60).toFixed(1);
+  const uInp = document.getElementById('stammUrlaubstage');
+  if (uInp) uInp.value = URLAUBSTAGE;
+  updateStammSollInfo();
+  updateStammUrlaubInfo();
+}
+
+function updateStammSollInfo() {
+  const el = document.getElementById('stammSollInfo');
+  if (el) el.textContent = `${(WOCHENSOLL_MIN/5/60).toFixed(2)}h pro Tag (Mo–Fr)`;
+}
+
+function updateStammUrlaubInfo() {
+  const el = document.getElementById('stammUrlaubInfo');
+  if (!el) return;
+  const y = new Date().getFullYear();
+  const usedDays = new Set(
+    getOwnEntries().filter(e => e.date.startsWith(`${y}-`) && e.task && e.task.toLowerCase() === 'urlaub')
+      .map(e => e.date)
+  ).size;
+  el.textContent = `${usedDays} von ${URLAUBSTAGE} Tagen genommen (${y})`;
 }
 
 // ============================================================
@@ -2562,7 +2735,7 @@ function renderWeekView() {
   for (let i = 0; i < 7; i++) {
     const day = new Date(monday); day.setDate(monday.getDate() + i);
     const dayStr = isoDate(day);
-    const dayEntries = data.entries.filter(e => e.date === dayStr)
+    const dayEntries = getOwnEntries().filter(e => e.date === dayStr)
       .sort((a,b) => a.from.localeCompare(b.from));
     const dayMins = dayEntries.reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
     totalWeekMins += dayMins;
@@ -2585,9 +2758,10 @@ function renderWeekView() {
         const dur = calcDuration(e.from, e.to, e.breakMin);
         const cust = (e.customerName && e.customerName !== '– Kunde wählen –') ? escapeHtml(e.customerName) : '–';
         const loc = (e.locationName && e.locationName !== '– Standort wählen –') ? ` · ${escapeHtml(e.locationName)}` : '';
+        const wkUserTag = (adminShowAll && e.userName) ? `<div class="entry-user-tag">${escapeHtml(e.userName)}</div>` : '';
         html += `<div class="week-entry-row">
           <div class="week-entry-time">${escapeHtml(e.from)} → ${escapeHtml(e.to)}</div>
-          <div class="week-entry-customer">${cust}<span style="color:var(--muted);font-size:0.65rem">${loc}</span>
+          <div class="week-entry-customer">${wkUserTag}${cust}<span style="color:var(--muted);font-size:0.65rem">${loc}</span>
             ${e.task ? `<span class="entry-task ${taskClass(e.task)}" style="margin-left:0.3rem">${escapeHtml(e.task)}</span>` : ''}
             ${e.title ? `<div style="font-size:0.7rem;color:var(--text);margin-top:0.15rem">${escapeHtml(e.title)}</div>` : ''}
           </div>
@@ -2625,6 +2799,7 @@ function renderMonthView() {
   const baseDate = new Date(year, month, 1);
   const y = baseDate.getFullYear(), m = baseDate.getMonth();
   const todayStr = isoDate(new Date());
+  const ownEntriesArr = getOwnEntries();
 
   document.getElementById('monthLabel').textContent =
     baseDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
@@ -2641,7 +2816,7 @@ function renderMonthView() {
   // Fill leading blanks
   for (let i = 0; i < startDow; i++) {
     const prevDate = new Date(y, m, 1 - (startDow - i));
-    const dayEntries = data.entries.filter(e => e.date === isoDate(prevDate));
+    const dayEntries = ownEntriesArr.filter(e => e.date === isoDate(prevDate));
     const dayMins = dayEntries.reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
     cal += buildCalCell(prevDate, dayEntries, dayMins, true, isoDate(prevDate) === todayStr);
   }
@@ -2650,7 +2825,7 @@ function renderMonthView() {
   for (let d = 1; d <= totalDays; d++) {
     const date = new Date(y, m, d);
     const dateStr = isoDate(date);
-    const dayEntries = data.entries.filter(e => e.date === dateStr)
+    const dayEntries = ownEntriesArr.filter(e => e.date === dateStr)
       .sort((a,b) => a.from.localeCompare(b.from));
     const dayMins = dayEntries.reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
     cal += buildCalCell(date, dayEntries, dayMins, false, dateStr === todayStr);
@@ -2661,7 +2836,7 @@ function renderMonthView() {
   const endDow = lastDay.getDay() === 0 ? 6 : lastDay.getDay() - 1;
   for (let i = 1; i < 7 - endDow; i++) {
     const nextDate = new Date(y, m, totalDays + i);
-    const dayEntries = data.entries.filter(e => e.date === isoDate(nextDate));
+    const dayEntries = ownEntriesArr.filter(e => e.date === isoDate(nextDate));
     const dayMins = dayEntries.reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
     cal += buildCalCell(nextDate, dayEntries, dayMins, true, false);
   }
@@ -2669,7 +2844,7 @@ function renderMonthView() {
   cal += `</div>`;
 
   // Week summaries below calendar
-  const monthEntries = data.entries.filter(e => e.date.startsWith(`${y}-${String(m+1).padStart(2,'0')}`));
+  const monthEntries = ownEntriesArr.filter(e => e.date.startsWith(`${y}-${String(m+1).padStart(2,'0')}`));
   const monthMins = monthEntries.reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
 
   // Group by calendar week
@@ -2724,7 +2899,7 @@ function renderYearView() {
   const y = now.getFullYear() + yearOffset;
   document.getElementById('yearLabel').textContent = y;
 
-  const yearEntries = data.entries.filter(e => e.date.startsWith(`${y}-`));
+  const yearEntries = getOwnEntries().filter(e => e.date.startsWith(`${y}-`));
   const yearMins = yearEntries.reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const yearDays = [...new Set(yearEntries.map(e => e.date))].length;
   const yearCustomers = [...new Set(yearEntries.map(e => e.customerId).filter(Boolean))].length;
@@ -2793,7 +2968,7 @@ function renderYearView() {
 //  STATS
 // ============================================================
 function populateStatsMonths() {
-  const months = [...new Set(data.entries.map(e => e.date.slice(0, 7)))].sort().reverse();
+  const months = [...new Set(getOwnEntries().map(e => e.date.slice(0, 7)))].sort().reverse();
   const sel = document.getElementById('statsMonth');
   if (!sel) return;
   const cur = sel.value;
@@ -2807,7 +2982,7 @@ function populateStatsMonths() {
 
 function renderStats() {
   const month = document.getElementById('statsMonth')?.value || '';
-  const filtered = data.entries.filter(e => !month || e.date.startsWith(month));
+  const filtered = getOwnEntries().filter(e => !month || e.date.startsWith(month));
 
   const totalMins = filtered.reduce((s, e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const days = [...new Set(filtered.map(e => e.date))].length;
@@ -3216,6 +3391,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_lACmpenof0zSNdiEW_5YQw_eiqoY-OU';
 
 let _supabaseClient = null;
 let currentUser = null;  // { id, code, name, role }
+let adminShowAll = false; // false = "Meine Einträge", true = "Alle Einträge"
 let syncBusy = false;
 let syncPushTimer = null;
 let _realtimeChannel = null;
@@ -3389,8 +3565,12 @@ async function syncPush() {
     for (const l of data.locations) { if (!isUUID(String(l.id))) { l.id = ensureUUID(l.id); migrated = true; } }
     data.deletedIds = (data.deletedIds || []).filter(id => isUUID(String(id)));
     if (migrated) localStorage.setItem('blitz_v2', JSON.stringify(data));
+    // Admin: nur eigene Einträge pushen, nicht die der anderen Benutzer
+    const ownEntriesToPush = (currentUser.role === 'admin')
+      ? data.entries.filter(e => e.userId === currentUser.id || !e.userId)
+      : data.entries;
     const allEntries = [
-      ...data.entries.map(e => ({
+      ...ownEntriesToPush.map(e => ({
         id: String(e.id), date: e.date,
         from_time: e.from, to_time: e.to, break_min: e.breakMin || 0,
         customer_id: e.customerId || null, customer_name: e.customerName || null,
@@ -3463,7 +3643,8 @@ async function syncPull() {
       id: e.id, date: e.date, from: e.from_time, to: e.to_time,
       breakMin: e.break_min, customerId: e.customer_id, customerName: e.customer_name,
       locationId: e.location_id, locationName: e.location_name,
-      task: e.task, title: e.title, note: e.note, transferred: e.transferred
+      task: e.task, title: e.title, note: e.note, transferred: e.transferred,
+      userId: e.user_id || null, userName: e.user_name || null
     }));
     data.customers = (custsRaw || []).map(c => ({ id: c.id, name: c.name }));
     data.locations = (locsRaw || []).map(l => ({ id: l.id, customerId: l.customer_id, name: l.name }));
@@ -3504,9 +3685,12 @@ function updateAdminUI() {
   const teamTab = document.getElementById('teamTab');
   const bnavTeam = document.getElementById('bnav-team');
   const benutzerItem = document.getElementById('mehrBenutzerItem');
+  const adminToggle = document.getElementById('adminViewToggle');
   if (teamTab) teamTab.style.display = isAdmin ? '' : 'none';
   if (bnavTeam) bnavTeam.style.display = isAdmin ? '' : 'none';
   if (benutzerItem) benutzerItem.style.display = isAdmin ? '' : 'none';
+  if (adminToggle) adminToggle.style.display = isAdmin ? '' : 'none';
+  if (!isAdmin) { adminShowAll = false; }
 }
 
 async function renderBenutzerPage() {
@@ -4005,7 +4189,7 @@ function renderQuickSaldo() {
   const today = new Date();
   const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
   const monday = new Date(today); monday.setDate(today.getDate() - dow);
-  const weekMins = data.entries.filter(e => e.date >= isoDate(monday))
+  const weekMins = getOwnEntries().filter(e => e.date >= isoDate(monday) && !isAbwesenheit(e.task))
     .reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const diff = weekMins - getWeekSollMins(monday);
   const h = Math.floor(weekMins/60), m = weekMins%60;
@@ -4023,16 +4207,22 @@ function renderMehrSaldo() {
   const today = new Date(); today.setHours(0,0,0,0);
   const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
   const monday = new Date(today); monday.setDate(today.getDate() - dow);
-  const weekMins = data.entries.filter(e => e.date >= isoDate(monday))
+  const ownE = getOwnEntries();
+  const weekMins = ownE.filter(e => e.date >= isoDate(monday) && !isAbwesenheit(e.task))
     .reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const weekDiff = weekMins - getWeekSollMins(monday);
   // Month
   const mStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-  const monthMins = data.entries.filter(e => e.date.startsWith(mStr))
+  const monthMins = ownE.filter(e => e.date.startsWith(mStr) && !isAbwesenheit(e.task))
     .reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   let monthSoll = 0;
   const cur = new Date(today.getFullYear(), today.getMonth(), 1);
   while (cur <= today) { const d=cur.getDay(); if(d!==0&&d!==6) monthSoll+=WOCHENSOLL_MIN/5; cur.setDate(cur.getDate()+1); }
+  // Urlaub/Krank-Tage vom Monatssoll abziehen
+  const abwMD = new Set();
+  ownE.filter(e => e.date.startsWith(mStr) && isAbwesenheit(e.task)).forEach(e => abwMD.add(e.date));
+  monthSoll -= abwMD.size * (WOCHENSOLL_MIN / 5);
+  monthSoll = Math.max(0, monthSoll);
   const monthDiff = monthMins - monthSoll;
 
   function fmtS(m) { const a=Math.abs(m),h=Math.floor(a/60),mi=a%60,s=m>=0?'+':'−'; return `${s}${h}h ${String(mi).padStart(2,'0')}m`; }
@@ -4361,7 +4551,11 @@ function renderSplitSegments() {
           <option value="Installation" ${seg.task==='Installation'?'selected':''}>Installation</option>
           <option value="Wartung"      ${seg.task==='Wartung'?'selected':''}>Wartung</option>
           <option value="Störung"      ${seg.task==='Störung'?'selected':''}>Störung</option>
+          <option value="Inbetriebnahme" ${seg.task==='Inbetriebnahme'?'selected':''}>Inbetriebnahme</option>
+          <option value="Planung"      ${seg.task==='Planung'?'selected':''}>Planung</option>
           <option value="Sonstiges"    ${seg.task==='Sonstiges'?'selected':''}>Sonstiges</option>
+          <option value="Urlaub"       ${seg.task==='Urlaub'?'selected':''}>Urlaub</option>
+          <option value="Krank"        ${seg.task==='Krank'?'selected':''}>Krank</option>
         </select>
       </div>
       <div class="split-field">
@@ -4488,7 +4682,11 @@ function confirmSplit() {
           <option value="Installation">Installation</option>
           <option value="Wartung">Wartung</option>
           <option value="Störung">Störung</option>
+          <option value="Inbetriebnahme">Inbetriebnahme</option>
+          <option value="Planung">Planung</option>
           <option value="Sonstiges">Sonstiges</option>
+          <option value="Urlaub">Urlaub</option>
+          <option value="Krank">Krank</option>
         </select>
       </div>
       <div class="field wide">
