@@ -11,6 +11,9 @@
 --  Diesen GESAMTEN Inhalt einfügen → Run klicken.
 -- ============================================================
 
+-- Alte Funktion droppen (Rückgabetyp hat sich geändert)
+DROP FUNCTION IF EXISTS get_entries_for_code(text);
+
 CREATE OR REPLACE FUNCTION get_entries_for_code(p_code text)
 RETURNS jsonb
 LANGUAGE plpgsql
