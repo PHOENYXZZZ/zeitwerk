@@ -113,6 +113,26 @@
     font-family: 'DM Mono', monospace; letter-spacing: 1px;
     z-index: 50; pointer-events: none; user-select: none;
   }
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: none; border: none; color: var(--accent); cursor: pointer;
+    font-size: 0.8rem; font-family: 'DM Mono', monospace;
+    padding: 0.5rem 0; margin-bottom: 0.75rem;
+  }
+  .back-btn:active { opacity: 0.6; }
+  .scroll-top-btn {
+    position: fixed; bottom: 5rem; right: 1rem; z-index: 90;
+    background: var(--accent); color: var(--bg); border: none; border-radius: 50%;
+    width: 44px; height: 44px; font-size: 1.1rem; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25); display: none;
+    align-items: center; justify-content: center;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .scroll-top-btn.visible { display: flex; }
+  .scroll-top-btn:active { transform: scale(0.9); }
+  @media (max-width: 640px) {
+    .scroll-top-btn { bottom: calc(env(safe-area-inset-bottom) + 72px); }
+  }
   @media (max-width: 640px) {
     .version-badge { bottom: calc(env(safe-area-inset-bottom) + 68px); }
   }
@@ -1270,7 +1290,7 @@
 <!-- PIN LOCK OVERLAY -->
 <div class="pin-overlay hidden" id="pinOverlay">
   <div class="pin-logo">BLITZ</div>
-  <div class="pin-subtitle">Elektro · Energie & Gebäudetechnik</div>
+  <div class="pin-subtitle">Zeiterfassung</div>
   <div class="pin-mode-label" id="pinModeLabel">PIN eingeben</div>
   <div class="pin-dots" id="pinDots">
     <div class="pin-dot" id="pd0"></div>
@@ -1296,7 +1316,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v58</div>
+<div class="version-badge">v59</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -1513,6 +1533,7 @@
 
   <!-- =================== ZEITERFASSUNG =================== -->
   <div id="page-zeiterfassung" class="page">
+    <button class="back-btn" onclick="showPage('mehr')">← Zurück</button>
 
     <div class="panel panel-accent">
       <div class="live-time" id="liveClock">00:00:00</div>
@@ -1689,6 +1710,7 @@
       <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
       <button class="btn-ghost" onclick="showPDFExportDialog()">⬇ PDF Stundenzettel</button>
     </div>
+    <button class="scroll-top-btn no-print" id="scrollTopBtn" onclick="scrollToToday()" title="Zum heutigen Tag">↑</button>
   </div>
 
   <!-- =================== ÜBERSICHT =================== -->
@@ -1737,6 +1759,7 @@
 
   <!-- =================== AUSWERTUNG =================== -->
   <div id="page-auswertung" class="page">
+    <button class="back-btn" onclick="showPage('mehr')">← Zurück</button>
 
     <div class="panel-title" style="margin-bottom:1rem">Monatsfilter</div>
     <div class="filter-row" style="margin-bottom:1.5rem">
@@ -1755,6 +1778,7 @@
 
   <!-- =================== STAMMDATEN =================== -->
   <div id="page-stammdaten" class="page">
+    <button class="back-btn" onclick="showPage('mehr')">← Zurück</button>
     <div class="panel">
       <div class="panel-title">Kunden & Standorte verwalten</div>
       <div class="stamm-grid">
@@ -1802,6 +1826,7 @@
     </div>
   </div>
   <div id="page-sync" class="page">
+    <button class="back-btn" onclick="showPage('mehr')">← Zurück</button>
     <div id="syncStatusBar" class="sync-status-bar sync-idle">
       <span id="syncStatusIcon">○</span>
       <span id="syncStatusText">Nicht angemeldet</span>
@@ -1862,6 +1887,7 @@
   </div>
 
   <div id="page-benutzer" class="page">
+    <button class="back-btn" onclick="showPage('mehr')">← Zurück</button>
     <div class="panel">
       <div class="panel-title">Benutzer anlegen</div>
       <div style="display:flex;flex-direction:column;gap:0.6rem">
@@ -2627,6 +2653,11 @@ function renderWeekView() {
   </div>`;
 
   document.getElementById('weekGrid').innerHTML = html;
+  // Auto-Scroll zum heutigen Tag (besonders auf dem Handy wichtig)
+  requestAnimationFrame(() => {
+    const todayEl = document.querySelector('.week-day-today');
+    if (todayEl) todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
 }
 
 function renderMonthView() {
@@ -2706,6 +2737,11 @@ function renderMonthView() {
   wSummary += `</div>`;
 
   document.getElementById('monthGrid').innerHTML = cal + wSummary;
+  // Auto-Scroll zur Heute-Zelle
+  requestAnimationFrame(() => {
+    const todayCell = document.querySelector('.today-cell');
+    if (todayCell) todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
 }
 
 function buildCalCell(date, entries, dayMins, otherMonth, isToday) {
@@ -4272,6 +4308,26 @@ window.addEventListener('online',  () => { updateOnlineStatus(); showNetworkToas
 window.addEventListener('offline', () => { updateOnlineStatus(); showNetworkToast('⚠️ Offline – Daten werden lokal gespeichert'); });
 
 // ============================================================
+//  SCROLL-TO-TODAY BUTTON (Einträge-Seite)
+// ============================================================
+function scrollToToday() {
+  const firstGroup = document.querySelector('#entriesList .day-group');
+  if (firstGroup) firstGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('scrollTopBtn');
+  if (!btn) return;
+  const isEntriesPage = document.getElementById('page-eintraege')?.classList.contains('active');
+  if (isEntriesPage && window.scrollY > 300) {
+    btn.classList.add('visible');
+  } else {
+    btn.classList.remove('visible');
+  }
+});
+
+// ============================================================
 //  SERVICE WORKER REGISTRIERUNG
 // ============================================================
 if ('serviceWorker' in navigator) {
@@ -4314,6 +4370,8 @@ function editEntry(id) {
   document.getElementById('editTask').value = e.task || '';
 
   document.getElementById('editModalOverlay').classList.remove('hidden');
+  // Dauer-Vorschau sofort aktualisieren
+  updateDurPreview('editFrom','editTo','editBreak','editDurPreview');
 }
 
 function populateEditLocations(customerId, selectedId) {
@@ -4598,15 +4656,18 @@ function confirmSplit() {
       </div>
       <div class="field">
         <label>Von</label>
-        <input type="time" id="editFrom">
+        <input type="time" id="editFrom" oninput="updateDurPreview('editFrom','editTo','editBreak','editDurPreview')">
       </div>
       <div class="field">
         <label>Bis</label>
-        <input type="time" id="editTo">
+        <input type="time" id="editTo" oninput="updateDurPreview('editFrom','editTo','editBreak','editDurPreview')">
       </div>
       <div class="field">
         <label>Pause (min)</label>
-        <input type="number" id="editBreak" min="0" step="5">
+        <input type="number" id="editBreak" min="0" step="5" oninput="updateDurPreview('editFrom','editTo','editBreak','editDurPreview')">
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <div class="quick-duration" id="editDurPreview" style="margin:0;text-align:left"></div>
       </div>
       <div class="field">
         <label>Tätigkeit</label>
@@ -4615,6 +4676,8 @@ function confirmSplit() {
           <option value="Installation">Installation</option>
           <option value="Wartung">Wartung</option>
           <option value="Störung">Störung</option>
+          <option value="Inbetriebnahme">Inbetriebnahme</option>
+          <option value="Planung">Planung</option>
           <option value="Sonstiges">Sonstiges</option>
         </select>
       </div>
