@@ -2653,11 +2653,13 @@ function renderWeekView() {
   </div>`;
 
   document.getElementById('weekGrid').innerHTML = html;
-  // Auto-Scroll zum heutigen Tag (besonders auf dem Handy wichtig)
-  requestAnimationFrame(() => {
-    const todayEl = document.querySelector('.week-day-today');
-    if (todayEl) todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
+  // Auto-Scroll zum heutigen Tag (nur aktuelle Woche, mit Delay wegen showPage scrollTo(0,0))
+  if (weekOffset === 0) {
+    setTimeout(() => {
+      const todayEl = document.querySelector('.week-day-today');
+      if (todayEl) todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+  }
 }
 
 function renderMonthView() {
@@ -2737,11 +2739,13 @@ function renderMonthView() {
   wSummary += `</div>`;
 
   document.getElementById('monthGrid').innerHTML = cal + wSummary;
-  // Auto-Scroll zur Heute-Zelle
-  requestAnimationFrame(() => {
-    const todayCell = document.querySelector('.today-cell');
-    if (todayCell) todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
+  // Auto-Scroll zur Heute-Zelle (nur aktueller Monat)
+  if (monthOffset === 0) {
+    setTimeout(() => {
+      const todayCell = document.querySelector('.today-cell');
+      if (todayCell) todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+  }
 }
 
 function buildCalCell(date, entries, dayMins, otherMonth, isToday) {
@@ -4543,10 +4547,12 @@ function renderSplitSegments() {
         <div class="split-field-label">Tätigkeit</div>
         <select onchange="updateSplitSegment(${i},'task',this.value)">
           <option value="" ${!seg.task ? 'selected' : ''}>– Tätigkeit wählen –</option>
-          <option value="Installation" ${seg.task==='Installation'?'selected':''}>Installation</option>
-          <option value="Wartung"      ${seg.task==='Wartung'?'selected':''}>Wartung</option>
-          <option value="Störung"      ${seg.task==='Störung'?'selected':''}>Störung</option>
-          <option value="Sonstiges"    ${seg.task==='Sonstiges'?'selected':''}>Sonstiges</option>
+          <option value="Installation"    ${seg.task==='Installation'?'selected':''}>Installation</option>
+          <option value="Wartung"          ${seg.task==='Wartung'?'selected':''}>Wartung</option>
+          <option value="Störung"          ${seg.task==='Störung'?'selected':''}>Störung</option>
+          <option value="Inbetriebnahme"   ${seg.task==='Inbetriebnahme'?'selected':''}>Inbetriebnahme</option>
+          <option value="Planung"          ${seg.task==='Planung'?'selected':''}>Planung</option>
+          <option value="Sonstiges"        ${seg.task==='Sonstiges'?'selected':''}>Sonstiges</option>
         </select>
       </div>
       <div class="split-field">
