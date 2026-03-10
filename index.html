@@ -1296,7 +1296,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v56</div>
+<div class="version-badge">v57</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -2200,6 +2200,15 @@ function findOverlappingEntries(entry, excludeId = null) {
 
 function addEntry(e) {
   e.id = crypto.randomUUID();
+  // Duplikat-Check: exakt gleicher Eintrag schon vorhanden?
+  const dupKey = `${e.date}|${e.from}|${e.to}|${String(e.customerName||e.customerId||'')}|${e.task||''}`;
+  const isDup = data.entries.some(x => {
+    return `${x.date}|${x.from}|${x.to}|${String(x.customerName||x.customerId||'')}|${x.task||''}` === dupKey;
+  });
+  if (isDup) {
+    showToast('Eintrag existiert bereits – nicht erneut hinzugefügt.', 'error');
+    return;
+  }
   // Überlappungswarnung
   const overlaps = findOverlappingEntries(e, e.id);
   if (overlaps.length > 0) {
@@ -3377,8 +3386,11 @@ async function syncPush() {
   const sb = getSupabase();
   if (!sb) return;
   syncBusy = true;
+  _realtimePaused = true; // Eigene Push-Events nicht als externe Änderung interpretieren
   setSyncStatus('busy', 'Lade hoch…');
   try {
+    // Vor dem Push lokale Duplikate bereinigen
+    deduplicateLocalEntries();
     const uid = currentUser.id;
     // Alte Timestamp-IDs in UUIDs migrieren (einmalig)
     let migrated = false;
@@ -3439,15 +3451,22 @@ async function syncPush() {
     setSyncStatus('error', 'Upload fehlgeschlagen: ' + e.message);
   }
   syncBusy = false;
+  // Realtime nach Push für 3s unterdrücken (postgres_changes brauchen ~1s)
+  setTimeout(() => { _realtimePaused = false; }, 3000);
 }
 
 function deduplicateLocalEntries() {
   if (!data.entries || data.entries.length === 0) return false;
   const seen = new Map();
   const toDelete = [];
-  const sorted = [...data.entries].sort((a, b) => (a.date + a.from) < (b.date + b.from) ? -1 : 1);
+  // Sortieren: älteste zuerst behalten (nach ID als Fallback)
+  const sorted = [...data.entries].sort((a, b) => {
+    const cmp = (a.date + a.from).localeCompare(b.date + b.from);
+    return cmp !== 0 ? cmp : String(a.id).localeCompare(String(b.id));
+  });
   for (const e of sorted) {
-    const key = `${e.date}|${e.from}|${e.to}|${String(e.customerId||'')}|${e.task||''}`;
+    // Breiterer Key: Datum + Zeiten + Kunde + Aufgabe (Kern-Identität eines Eintrags)
+    const key = `${e.date}|${e.from}|${e.to}|${String(e.customerName||e.customerId||'')}|${e.task||''}`;
     if (seen.has(key)) {
       toDelete.push(e.id);
     } else {
@@ -3473,11 +3492,8 @@ async function syncPull() {
   setSyncStatus('busy', 'Lade Daten…');
   try {
     const uid = currentUser.id;
-    // Admins sehen in ihrer eigenen Übersicht nur ihre eigenen Einträge (get_entries_for_code)
-    const rpcName  = 'get_entries_for_code';
-    const rpcParam = { p_code: currentUser.code };
     const [{ data: allEntriesRaw, error: eErr }, { data: custsRaw, error: cErr }, { data: locsRaw, error: lErr }] = await Promise.all([
-      sb.rpc(rpcName, rpcParam),
+      sb.rpc('get_entries_for_code', { p_code: currentUser.code }),
       sb.rpc('get_customers_for_code', { p_code: currentUser.code }),
       sb.rpc('get_locations_for_code', { p_code: currentUser.code })
     ]);
@@ -3486,17 +3502,32 @@ async function syncPull() {
     if (lErr) throw lErr;
     // Lokale Tombstones merken, bevor wir data.deletedIds überschreiben
     const localDeletedIds = data.deletedIds || [];
-    // user_id-Filter als Sicherheitsnetz gegen RPC-Bugs (nur wenn user_id im Response vorhanden)
     const allRaw = allEntriesRaw || [];
-    const entriesRaw = allRaw.filter(e => !e.deleted && (!e.user_id || e.user_id === currentUser.id));
-    const deletedRaw = allRaw.filter(e => e.deleted && (!e.user_id || e.user_id === currentUser.id));
+    // STRIKTER user_id-Filter: Nur eigene Einträge akzeptieren.
+    // Wenn user_id im Response fehlt, vertrauen wir dem RPC (er sollte nur eigene liefern).
+    // Wenn user_id vorhanden ist und NICHT übereinstimmt → Eintrag abweisen.
+    const entriesRaw = allRaw.filter(e => !e.deleted && (e.user_id === uid || e.user_id === undefined));
+    const deletedRaw = allRaw.filter(e => e.deleted && (e.user_id === uid || e.user_id === undefined));
     // Dedup by ID (server-seitige ID-Duplikate verhindern)
     const seenIds = new Set();
     const uniqueEntries = entriesRaw.filter(e => {
       if (seenIds.has(e.id)) return false;
       seenIds.add(e.id); return true;
     });
-    data.entries = uniqueEntries.map(e => ({
+    // Content-basierte Dedup direkt beim Import (gleicher Tag + gleiche Zeiten + gleicher Kunde = Duplikat)
+    const seenContent = new Map();
+    const dedupedEntries = [];
+    for (const e of uniqueEntries) {
+      const key = `${e.date}|${e.from_time}|${e.to_time}|${e.customer_name||''}|${e.task||''}`;
+      if (!seenContent.has(key)) {
+        seenContent.set(key, e.id);
+        dedupedEntries.push(e);
+      } else {
+        // Duplikat → als Tombstone merken damit es beim nächsten Push gelöscht wird
+        localDeletedIds.push(e.id);
+      }
+    }
+    data.entries = dedupedEntries.map(e => ({
       id: e.id, date: e.date, from: e.from_time, to: e.to_time,
       breakMin: e.break_min, customerId: e.customer_id, customerName: e.customer_name,
       locationId: e.location_id, locationName: e.location_name,
@@ -3506,8 +3537,6 @@ async function syncPull() {
     data.locations = (locsRaw || []).map(l => ({ id: l.id, customerId: l.customer_id, name: l.name }));
     // deletedIds MERGEN statt überschreiben (lokale Tombstones dürfen nicht verloren gehen)
     data.deletedIds = [...new Set([...localDeletedIds, ...(deletedRaw || []).map(e => e.id)])];
-    // Content-basierte Duplikatbereinigung (lokaler Cleanup, Tombstones werden beim nächsten Push übertragen)
-    deduplicateLocalEntries();
     localStorage.setItem('blitz_v2', JSON.stringify(data));
     renderEntries();
     renderSaldo();
@@ -3523,10 +3552,16 @@ async function syncPull() {
   syncBusy = false;
 }
 
+let _realtimePaused = false; // Realtime-Events nach eigenem Push unterdrücken
+
 async function syncNow() {
   clearTimeout(syncPushTimer); // Debounced Push abbrechen, da wir jetzt sofort pushen
+  // Realtime-Events während Push+Pull unterdrücken (eigener Push triggert postgres_changes)
+  _realtimePaused = true;
   await syncPush();
   await syncPull();
+  // Nach kurzem Delay Realtime wieder aktivieren (postgres_changes brauchen ~1s)
+  setTimeout(() => { _realtimePaused = false; }, 3000);
 }
 
 function setupRealtimeSync() {
@@ -3535,7 +3570,8 @@ function setupRealtimeSync() {
   if (_realtimeChannel) sb.removeChannel(_realtimeChannel);
   _realtimeChannel = sb.channel('blitz-entries')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${currentUser.id}` }, () => {
-      if (!syncBusy) syncPull();
+      // Eigene Push-Events ignorieren (verhindert Sync-Loop)
+      if (!syncBusy && !_realtimePaused) syncPull();
     })
     .subscribe();
 }
