@@ -1,5 +1,21 @@
-const CACHE = 'blitz-v60';
-const ASSETS = ['./'];
+const CACHE = 'blitz-v61';
+const ASSETS = [
+  './',
+  './css/styles.css',
+  './js/utils.js',
+  './js/state.js',
+  './js/timer.js',
+  './js/entries.js',
+  './js/overview.js',
+  './js/stammdaten.js',
+  './js/export.js',
+  './js/sync.js',
+  './js/admin.js',
+  './js/pin.js',
+  './js/quick-entry.js',
+  './js/modals.js',
+  './js/app.js'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(
