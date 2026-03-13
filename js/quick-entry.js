@@ -97,7 +97,7 @@ function onQuickCustomerChange() {
   const locs = data.locations.filter(l => String(l.customerId) === String(val));
   const locSel = document.getElementById('quickLocSel');
   locSel.innerHTML = '<option value="">– Standort wählen –</option>' +
-    locs.map(l => `<option value="${l.id}">${l.name}</option>`).join('') +
+    locs.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)}</option>`).join('') +
     '<option value="__new__">+ Neuer Standort…</option>';
   locWrap.style.display = '';
   newLocWrap.style.display = 'none';

@@ -259,6 +259,6 @@ function populateFilterSelects() {
   const cSel = document.getElementById('filterCustomer');
   const curC = cSel.value;
   cSel.innerHTML = '<option value="">Alle Kunden</option>' +
-    data.customers.map(c => `<option value="${c.id}" ${c.id == curC ? 'selected' : ''}>${c.name}</option>`).join('');
+    data.customers.map(c => `<option value="${escapeHtml(c.id)}" ${c.id == curC ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
 }
 

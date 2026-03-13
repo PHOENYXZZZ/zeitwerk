@@ -18,7 +18,7 @@ function editEntry(id) {
   // Populate customer select
   const cSel = document.getElementById('editCustomer');
   cSel.innerHTML = '<option value="">– Kunde –</option>' +
-    data.customers.map(c => `<option value="${c.id}" ${c.id === e.customerId ? 'selected' : ''}>${c.name}</option>`).join('');
+    data.customers.map(c => `<option value="${escapeHtml(c.id)}" ${c.id === e.customerId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
 
   // Populate location select based on customer
   populateEditLocations(e.customerId, e.locationId);
@@ -35,7 +35,7 @@ function populateEditLocations(customerId, selectedId) {
   const lSel = document.getElementById('editLocation');
   const locs = customerId ? data.locations.filter(l => l.customerId === customerId) : data.locations;
   lSel.innerHTML = '<option value="">– Standort –</option>' +
-    locs.map(l => `<option value="${l.id}" ${l.id === selectedId ? 'selected' : ''}>${l.name}</option>`).join('');
+    locs.map(l => `<option value="${escapeHtml(l.id)}" ${l.id === selectedId ? 'selected' : ''}>${escapeHtml(l.name)}</option>`).join('');
 }
 
 function closeEditModal() {

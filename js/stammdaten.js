@@ -16,7 +16,7 @@ function populateStatsMonths() {
 
 function renderStats() {
   const month = document.getElementById('statsMonth')?.value || '';
-  const filtered = data.entries.filter(e => !month || e.date.startsWith(month));
+  const filtered = data.entries.filter(e => e.task !== '__VACATION__' && (!month || e.date.startsWith(month)));
 
   const totalMins = filtered.reduce((s, e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const days = [...new Set(filtered.map(e => e.date))].length;
@@ -111,12 +111,12 @@ function renderStammdaten() {
   const lcf = document.getElementById('locationCustomerFilter');
   const lcfCur = lcf.value;
   lcf.innerHTML = '<option value="">Alle Kunden</option>' +
-    data.customers.map(c => `<option value="${c.id}" ${c.id === lcfCur ? 'selected' : ''}>${c.name}</option>`).join('');
+    data.customers.map(c => `<option value="${escapeHtml(c.id)}" ${c.id === lcfCur ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
 
   // New location customer select
   const nlc = document.getElementById('newLocationCustomer');
   nlc.innerHTML = '<option value="">Kunde wählen</option>' +
-    data.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    data.customers.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
 
   renderLocationList();
   populateAllSelects();
@@ -138,7 +138,7 @@ function renderLocationList() {
 function populateAllSelects() {
   const custOpts = '<option value="">– Kunde wählen –</option>' +
     data.customers.slice().sort((a,b) => a.name.localeCompare(b.name))
-      .map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
   ['timerCustomer', 'manCustomer'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { const cur = el.value; el.innerHTML = custOpts; el.value = cur; }
@@ -159,7 +159,7 @@ function locationOptionsFor(customerId) {
     ? data.locations.filter(l => l.customerId === customerId)
     : data.locations;
   return '<option value="">– Standort wählen –</option>' +
-    locs.map(l => `<option value="${l.id}">${l.name}</option>`).join('') +
+    locs.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)}</option>`).join('') +
     '<option value="_free_">Freie Eingabe...</option>';
 }
 

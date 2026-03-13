@@ -139,13 +139,13 @@ async function loginWithCode() {
 }
 
 async function logout() {
+  if (!confirm('Abmelden?')) return;
   // Erst ausstehende Änderungen hochladen, bevor der Cache geleert wird
   if (syncPushTimer) {
     clearTimeout(syncPushTimer);
     syncPushTimer = null;
     await syncPush();
   }
-  if (!confirm('Abmelden?')) return;
   const sb = getSupabase();
   if (sb && _realtimeChannel) { sb.removeChannel(_realtimeChannel); _realtimeChannel = null; }
   currentUser = null;
