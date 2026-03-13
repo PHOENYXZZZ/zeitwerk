@@ -162,6 +162,8 @@ function saveQuickEntry() {
     task:         document.getElementById('quickTask').value,
     title:        document.getElementById('quickTitle').value,
     note:         document.getElementById('quickNote').value,
+    travelMin:    parseInt(document.getElementById('quickTravelMin').value) || 0,
+    travelKm:     parseFloat(document.getElementById('quickTravelKm').value) || 0,
   });
 
   // Reset Zeitfelder, Datum + Kunde bleiben
@@ -173,6 +175,8 @@ function saveQuickEntry() {
   const quickLocSel = document.getElementById('quickLocSel');
   if (quickLocSel) quickLocSel.value = '';
   document.getElementById('quickNewLocWrap').style.display = 'none';
+  document.getElementById('quickTravelMin').value = '0';
+  document.getElementById('quickTravelKm').value = '0';
 
   // Erfolgs-Feedback
   const btn = document.getElementById('btnSaveQuick');

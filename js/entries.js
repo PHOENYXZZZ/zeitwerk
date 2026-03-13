@@ -23,11 +23,15 @@ function addManualEntry() {
     locationName: locSel.options[locSel.selectedIndex]?.text || '',
     task: document.getElementById('manTask').value,
     title: document.getElementById('manTitle').value,
-    note: document.getElementById('manNote').value
+    note: document.getElementById('manNote').value,
+    travelMin: parseInt(document.getElementById('manTravelMin').value) || 0,
+    travelKm: parseFloat(document.getElementById('manTravelKm').value) || 0
   });
 
   ['manFrom', 'manTo', 'manNote', 'manTitle'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('manBreak').value = '0';
+  document.getElementById('manTravelMin').value = '0';
+  document.getElementById('manTravelKm').value = '0';
 }
 
 // ============================================================
@@ -44,6 +48,7 @@ function findOverlappingEntries(entry, excludeId = null) {
 
 function addEntry(e) {
   e.id = crypto.randomUUID();
+  e._modifiedAt = new Date().toISOString();
   // Duplikat-Check: exakt gleicher Eintrag schon vorhanden?
   const dupKey = `${e.date}|${e.from}|${e.to}|${String(e.customerName||e.customerId||'')}|${e.task||''}`;
   const isDup = data.entries.some(x => {
@@ -94,6 +99,9 @@ function getFilteredEntries() {
 function renderEntryCard(e) {
   const dur = calcDuration(e.from, e.to, e.breakMin);
   const breakInfo = e.breakMin > 0 ? `<div class="entry-break">${e.breakMin}min Pause</div>` : '';
+  const travelInfo = (e.travelMin > 0 || e.travelKm > 0)
+    ? `<div class="entry-travel">${e.travelMin ? e.travelMin + 'min' : ''}${e.travelMin && e.travelKm ? ' · ' : ''}${e.travelKm ? e.travelKm + 'km' : ''} Anfahrt</div>`
+    : '';
   const titleStr = e.title ? `<div class="entry-title">${escapeHtml(e.title)}</div>` : '';
   const noteStr = e.note ? `<div class="entry-desc">${escapeHtml(e.note)}</div>` : '';
   const taskBadge = e.task ? `<span class="entry-task ${taskClass(e.task)}">${escapeHtml(e.task)}</span>` : '';
@@ -113,7 +121,7 @@ function renderEntryCard(e) {
       </div>
       <div class="entry-right">
         <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
-        ${breakInfo}
+        ${breakInfo}${travelInfo}
         <button class="transfer-btn ${e.transferred ? 'done' : ''}" data-transfer-id="${safeId}"
           onclick="toggleTransferred('${safeId}')"
           title="${e.transferred ? 'Als ausstehend markieren' : 'Als übertragen markieren'}">✓</button>
@@ -197,6 +205,7 @@ function toggleTransferred(id) {
   const e = data.entries.find(x => String(x.id) === String(id));
   if (!e) return;
   e.transferred = !e.transferred;
+  e._modifiedAt = new Date().toISOString();
   save(); // debounced push via save()
   // Update in-place — no full re-render needed
   const btn = document.querySelector(`[data-transfer-id="${id}"]`);

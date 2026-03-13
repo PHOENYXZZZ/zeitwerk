@@ -26,6 +26,10 @@ function editEntry(id) {
   // Task
   document.getElementById('editTask').value = e.task || '';
 
+  // Travel
+  document.getElementById('editTravelMin').value = e.travelMin || 0;
+  document.getElementById('editTravelKm').value = e.travelKm || 0;
+
   document.getElementById('editModalOverlay').classList.remove('hidden');
   // Dauer-Vorschau sofort aktualisieren
   updateDurPreview('editFrom','editTo','editBreak','editDurPreview');
@@ -72,6 +76,10 @@ function saveEditEntry() {
   const lSel = document.getElementById('editLocation');
   e.locationId = lSel.value;
   e.locationName = lSel.options[lSel.selectedIndex]?.text || '';
+
+  e.travelMin = parseInt(document.getElementById('editTravelMin').value) || 0;
+  e.travelKm = parseFloat(document.getElementById('editTravelKm').value) || 0;
+  e._modifiedAt = new Date().toISOString();
 
   // Überlappungswarnung
   const overlaps = findOverlappingEntries(e, e.id);
@@ -264,7 +272,7 @@ function confirmSplit() {
   const n = _splitSegments.length;
 
   // 2. Neue Segmente erstellen und ZUERST speichern
-  const newEntries = _splitSegments.map(seg => ({
+  const newEntries = _splitSegments.map((seg, idx) => ({
     id: crypto.randomUUID(),
     date: parent.date,
     from: seg.from,
@@ -278,7 +286,9 @@ function confirmSplit() {
     locationId: parent.locationId,
     locationName: parent.locationName,
     user_code: parent.user_code,
-    transferred: false
+    transferred: false,
+    travelMin: idx === 0 ? (parent.travelMin || 0) : 0,
+    travelKm: idx === 0 ? (parent.travelKm || 0) : 0
   }));
 
   newEntries.forEach(e => data.entries.unshift(e));

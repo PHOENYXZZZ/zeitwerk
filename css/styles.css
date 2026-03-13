@@ -1417,6 +1417,87 @@ input:focus, select:focus, textarea:focus {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 
+/* Travel info in entry cards */
+.entry-travel {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+/* Sync pending status */
+.sync-pending {
+  border-left-color: var(--accent2) !important;
+}
+.sync-pending .sync-status-icon {
+  color: var(--accent2);
+}
+
+/* Conflict modal */
+.conflict-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.72);
+  z-index: 1100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.conflict-modal-overlay.hidden { display: none; }
+.conflict-box {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  max-width: 480px; width: 100%;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.conflict-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.1rem; font-weight: 300;
+  color: var(--accent2);
+  margin-bottom: 1rem;
+}
+.conflict-versions {
+  display: flex; flex-direction: column; gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.conflict-version {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  font-size: 0.78rem;
+}
+.conflict-version-label {
+  font-size: 0.65rem; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+.conflict-version.local { border-left: 3px solid var(--accent); }
+.conflict-version.server { border-left: 3px solid var(--blue); }
+.conflict-actions {
+  display: flex; gap: 0.5rem;
+}
+.conflict-actions .btn-primary,
+.conflict-actions .btn-ghost { flex: 1; }
+.conflict-counter {
+  text-align: center; margin-top: 0.75rem;
+  font-size: 0.68rem; color: var(--muted);
+}
+
+/* Team detail view */
+.team-member-panel {
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.team-member-panel:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+.team-detail-entry {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+}
+.team-detail-entry:last-child { border-bottom: none; }
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

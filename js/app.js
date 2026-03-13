@@ -110,8 +110,22 @@ function showNetworkToast(msg) {
   toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
 }
 
-window.addEventListener('online',  () => { updateOnlineStatus(); showNetworkToast('✅ Wieder online'); });
-window.addEventListener('offline', () => { updateOnlineStatus(); showNetworkToast('⚠️ Offline – Daten werden lokal gespeichert'); });
+window.addEventListener('online',  () => {
+  updateOnlineStatus();
+  showNetworkToast('✅ Wieder online');
+  // Bei Reconnect sofort synchronisieren
+  if (typeof currentUser !== 'undefined' && currentUser && !syncBusy) {
+    _syncRetryCount = 0;
+    syncNow();
+  }
+});
+window.addEventListener('offline', () => {
+  updateOnlineStatus();
+  showNetworkToast('⚠️ Offline – Daten werden lokal gespeichert');
+  if (typeof setSyncStatus === 'function') {
+    setSyncStatus('pending', 'Offline – Daten werden lokal gespeichert');
+  }
+});
 
 // ============================================================
 //  SCROLL-TO-TODAY BUTTON (Einträge-Seite)

@@ -61,7 +61,7 @@
   <div class="pin-setup-hint" id="pinSetupHint"></div>
 </div>
 
-<div class="version-badge">v62</div>
+<div class="version-badge">v63</div>
 <div class="container" id="appContainer">
 
   <header>
@@ -180,6 +180,14 @@
           <div class="field" style="grid-column:1/-1">
             <label>Notiz</label>
             <textarea id="quickNote" rows="2" placeholder="Beschreibung..."></textarea>
+          </div>
+          <div class="field">
+            <label>Fahrzeit (min)</label>
+            <input type="number" id="quickTravelMin" value="0" min="0" placeholder="0">
+          </div>
+          <div class="field">
+            <label>Kilometer</label>
+            <input type="number" id="quickTravelKm" value="0" min="0" step="0.1" placeholder="0">
           </div>
         </div>
       </div>
@@ -317,9 +325,19 @@
         <label>Titel der Tätigkeit</label>
         <input type="text" id="timerTitle" placeholder="z.B. Sicherungskasten EG tauschen, Kabel verlegen...">
       </div>
-      <div class="field" style="margin-bottom:1rem">
+      <div class="field" style="margin-bottom:0.75rem">
         <label>Beschreibung / Was wurde gemacht?</label>
         <textarea id="timerNote" rows="3" placeholder="Detaillierte Beschreibung der durchgeführten Arbeiten..."></textarea>
+      </div>
+      <div class="quick-details-grid" style="margin-bottom:0.75rem">
+        <div class="field">
+          <label>Fahrzeit (min)</label>
+          <input type="number" id="timerTravelMin" value="0" min="0">
+        </div>
+        <div class="field">
+          <label>km</label>
+          <input type="number" id="timerTravelKm" value="0" min="0" step="0.1">
+        </div>
       </div>
 
       <div class="controls">
@@ -403,6 +421,14 @@
         <div class="field" style="grid-column: 1 / -1">
           <label>Beschreibung / Was wurde gemacht?</label>
           <textarea id="manNote" rows="3" placeholder="Detaillierte Beschreibung der durchgeführten Arbeiten..."></textarea>
+        </div>
+        <div class="field">
+          <label>Fahrzeit (min)</label>
+          <input type="number" id="manTravelMin" value="0" min="0">
+        </div>
+        <div class="field">
+          <label>km</label>
+          <input type="number" id="manTravelKm" value="0" min="0" step="0.1">
         </div>
       </div>
       <button class="btn-primary" onclick="addManualEntry()">+ Eintrag hinzufügen</button>
@@ -640,6 +666,7 @@
         <input type="text" id="newUserName" placeholder="Name (z.B. Thomas)" autocomplete="off">
         <select id="newUserRole">
           <option value="worker">Mitarbeiter</option>
+          <option value="moderator">Moderator</option>
           <option value="admin">Admin</option>
         </select>
         <div style="display:flex;align-items:center;gap:0.5rem">
@@ -737,6 +764,16 @@
       <label>Notiz</label>
       <textarea id="editNote" rows="3" placeholder="Notizen..."></textarea>
     </div>
+    <div style="display:flex;gap:0.75rem;margin-top:0.5rem">
+      <div class="field" style="flex:1">
+        <label>Fahrzeit (min)</label>
+        <input type="number" id="editTravelMin" value="0" min="0">
+      </div>
+      <div class="field" style="flex:1">
+        <label>Kilometer</label>
+        <input type="number" id="editTravelKm" value="0" min="0" step="0.1">
+      </div>
+    </div>
     <div class="edit-modal-actions">
       <button class="btn-ghost" onclick="closeEditModal()">Abbrechen</button>
       <button class="btn-primary" onclick="saveEditEntry()">Speichern</button>
@@ -809,6 +846,19 @@
       <button class="btn-primary" style="flex:1" onclick="confirmPDFExport()">&#128196; PDF erstellen</button>
       <button class="btn-ghost" onclick="closePDFModal()">Abbrechen</button>
     </div>
+  </div>
+</div>
+
+<!-- =================== CONFLICT MODAL =================== -->
+<div class="conflict-modal-overlay hidden" id="conflictModalOverlay">
+  <div class="conflict-box">
+    <div class="conflict-title" id="conflictTitle"></div>
+    <div class="conflict-versions" id="conflictVersions"></div>
+    <div class="conflict-actions">
+      <button class="btn-primary" onclick="resolveConflict('local')">Meine behalten</button>
+      <button class="btn-ghost" onclick="resolveConflict('server')">Server nehmen</button>
+    </div>
+    <div class="conflict-counter" id="conflictCounter"></div>
   </div>
 </div>
 

@@ -71,6 +71,9 @@ function stopTimer() {
   const title = document.getElementById('timerTitle').value;
   const note = document.getElementById('timerNote').value;
 
+  const travelMin = parseInt(document.getElementById('timerTravelMin').value) || 0;
+  const travelKm = parseFloat(document.getElementById('timerTravelKm').value) || 0;
+
   addEntry({
     date: isoDate(startDate),
     from: startDate.toTimeString().slice(0, 5),
@@ -78,7 +81,8 @@ function stopTimer() {
     breakMin,
     customerId, customerName,
     locationId, locationName,
-    task, title, note
+    task, title, note,
+    travelMin, travelKm
   });
 
   timerStart = null;
@@ -93,4 +97,6 @@ function stopTimer() {
   document.getElementById('btnBreak').textContent = '⏸ Pause';
   document.getElementById('timerNote').value = '';
   document.getElementById('timerTitle').value = '';
+  document.getElementById('timerTravelMin').value = '0';
+  document.getElementById('timerTravelKm').value = '0';
 }

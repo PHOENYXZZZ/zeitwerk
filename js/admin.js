@@ -10,7 +10,7 @@ async function renderBenutzerPage() {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid var(--border)">
       <div style="flex:1">
         <div style="font-weight:500">${escapeHtml(u.name)}</div>
-        <div style="font-size:0.72rem;color:var(--muted)">Code: <code>${escapeHtml(u.code)}</code> · ${u.role === 'admin' ? 'Admin' : 'Mitarbeiter'}</div>
+        <div style="font-size:0.72rem;color:var(--muted)">Code: <code>${escapeHtml(u.code)}</code> · ${u.role === 'admin' ? 'Admin' : u.role === 'moderator' ? 'Moderator' : 'Mitarbeiter'}</div>
         <div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.3rem">
           <input type="number" min="1" max="60" step="0.5" value="${u.weekly_hours || 39}"
             style="width:50px;font-size:0.8rem;padding:0.15rem 0.3rem;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--fg)"
@@ -81,7 +81,7 @@ async function updateUserHours(userId, val, inputEl) {
 }
 
 async function renderTeamPage() {
-  if (!currentUser || currentUser.role !== 'admin') return;
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'moderator')) return;
   const sb = getSupabase();
   if (!sb) return;
 
@@ -131,6 +131,10 @@ async function renderTeamPage() {
   const monthStart = new Date(mY, mM - 1, 1);
   const monthEnd = new Date(mY, mM, 0); // last day of month
 
+  // Speichere Daten für Detail-View
+  window._teamData = byUser;
+  window._teamMonth = month;
+
   let html = '';
   for (const [name, { entries, weekly_hours }] of Object.entries(byUser).sort()) {
     const totalMin = entries.reduce((sum, e) => {
@@ -140,23 +144,25 @@ async function renderTeamPage() {
     const h = Math.floor(totalMin / 60);
     const m = totalMin % 60;
     const pending = entries.filter(e => !e.transferred).length;
-    // Calculate month soll for this user
+    // Calculate month soll for this user (mit Feiertagen)
     const userDayMin = (weekly_hours * 60) / 5;
     let monthSollMin = 0;
     const endDate = monthEnd < today ? monthEnd : today;
     const cur = new Date(monthStart);
     while (cur <= endDate) {
-      const d = cur.getDay();
-      if (d !== 0 && d !== 6) monthSollMin += userDayMin;
+      const ds = isoDate(cur);
+      const dow = cur.getDay();
+      if (dow !== 0 && dow !== 6 && !isHoliday(ds)) monthSollMin += userDayMin;
       cur.setDate(cur.getDate() + 1);
     }
     const diffMin = totalMin - monthSollMin;
     const diffSign = diffMin >= 0 ? '+' : '−';
     const diffAbs = Math.abs(Math.round(diffMin));
     const diffCol = diffMin >= 0 ? 'var(--green)' : 'var(--red)';
-    html += `<div class="panel" style="margin-bottom:0.75rem">
+    const safeName = escapeHtml(name);
+    html += `<div class="panel team-member-panel" style="margin-bottom:0.75rem" onclick="showTeamMemberDetail('${safeName.replace(/'/g, "\\'")}')">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-weight:500;font-size:0.95rem">${escapeHtml(name)}</div>
+        <div style="font-weight:500;font-size:0.95rem">${safeName}</div>
         <div style="color:var(--accent);font-family:'DM Mono',monospace;font-size:1.1rem">${h}h ${String(m).padStart(2,'0')}m</div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.3rem">
@@ -171,6 +177,77 @@ async function renderTeamPage() {
       <div style="color:var(--muted);font-size:0.65rem;margin-top:0.15rem">${weekly_hours}h/Woche</div>
     </div>`;
   }
+  container.innerHTML = html;
+}
+
+function showTeamMemberDetail(name) {
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'moderator')) return;
+  const userData = window._teamData?.[name];
+  if (!userData) return;
+  const { entries, weekly_hours } = userData;
+
+  const container = document.getElementById('teamContainer');
+  if (!container) return;
+
+  // Sortiere nach Datum+Zeit
+  entries.sort((a, b) => (a.date + (a.from_time || '')).localeCompare(b.date + (b.from_time || '')));
+
+  // Gruppiere nach Tag
+  const groups = {};
+  entries.forEach(e => {
+    if (!groups[e.date]) groups[e.date] = [];
+    groups[e.date].push(e);
+  });
+
+  const totalMin = entries.reduce((sum, e) => sum + calcDuration(e.from_time || '', e.to_time || '', e.break_min || 0).total, 0);
+  const weekdays = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+  let html = `<button class="back-btn" onclick="renderTeamPage()" style="margin-bottom:1rem">← Zurück zur Teamliste</button>`;
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <div style="font-weight:500;font-size:1.1rem">${escapeHtml(name)}</div>
+    <div style="color:var(--accent);font-family:'DM Mono',monospace;font-size:1.1rem">${fmtDur(totalMin)}</div>
+  </div>`;
+  html += `<div style="color:var(--muted);font-size:0.72rem;margin-bottom:1rem">${entries.length} Einträge · ${weekly_hours}h/Woche · ${window._teamMonth || ''}</div>`;
+
+  const sortedDates = Object.keys(groups).sort().reverse();
+  html += sortedDates.map(date => {
+    const dayEntries = groups[date];
+    const dayMins = dayEntries.reduce((s, e) => s + calcDuration(e.from_time || '', e.to_time || '', e.break_min || 0).total, 0);
+    const d = new Date(date + 'T12:00');
+    const dateLabel = `${weekdays[d.getDay()]} · ${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })}`;
+
+    return `<div class="day-group">
+      <div class="day-header">
+        <span class="day-label">${dateLabel}</span>
+        <span class="day-total">${fmtDur(dayMins)}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0.3rem">
+        ${dayEntries.map(e => {
+          const dur = calcDuration(e.from_time || '', e.to_time || '', e.break_min || 0);
+          const taskBadge = e.task ? `<span class="entry-task ${taskClass(e.task)}">${escapeHtml(e.task)}</span>` : '';
+          const custName = e.customer_name || '\u2013';
+          const locName = e.location_name && e.location_name !== '\u2013 Standort wählen \u2013' ? e.location_name : '';
+          const travelStr = (e.travel_min > 0 || e.travel_km > 0) ? `<div class="entry-travel">${e.travel_min ? e.travel_min + 'min' : ''}${e.travel_min && e.travel_km ? ' · ' : ''}${e.travel_km ? e.travel_km + 'km' : ''} Anfahrt</div>` : '';
+          return `<div class="entry${e.transferred ? ' transferred' : ''}">
+            <div class="entry-left">
+              <div class="entry-times">${escapeHtml(e.from_time || '')} <span>→</span> ${escapeHtml(e.to_time || '')}</div>
+            </div>
+            <div class="entry-meta">
+              <div class="entry-customer">${escapeHtml(custName)}${locName ? ` <span style="color:var(--muted)">·</span> <span class="entry-location">${escapeHtml(locName)}</span>` : ''}</div>
+              ${taskBadge}${e.title ? `<div class="entry-title">${escapeHtml(e.title)}</div>` : ''}${e.note ? `<div class="entry-desc">${escapeHtml(e.note)}</div>` : ''}
+            </div>
+            <div class="entry-right">
+              <div class="entry-duration">${dur.h}h ${String(dur.m).padStart(2,'0')}m</div>
+              ${e.break_min > 0 ? `<div class="entry-break">${e.break_min}min Pause</div>` : ''}
+              ${travelStr}
+              <span class="transfer-btn ${e.transferred ? 'done' : ''}" style="pointer-events:none" title="${e.transferred ? 'Übertragen' : 'Ausstehend'}">✓</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
   container.innerHTML = html;
 }
 

@@ -114,12 +114,16 @@ function getGermanHolidays(year) {
 
   return [
     { date: `${year}-01-01`, name: 'Neujahr' },
+    { date: `${year}-01-06`, name: 'Heilige Drei Könige' },
     { date: fmt(addDays(easter, -2)), name: 'Karfreitag' },
     { date: fmt(addDays(easter, 1)), name: 'Ostermontag' },
     { date: `${year}-05-01`, name: 'Tag der Arbeit' },
     { date: fmt(addDays(easter, 39)), name: 'Christi Himmelfahrt' },
     { date: fmt(addDays(easter, 50)), name: 'Pfingstmontag' },
+    { date: fmt(addDays(easter, 60)), name: 'Fronleichnam' },
+    { date: `${year}-08-15`, name: 'Mariä Himmelfahrt' },
     { date: `${year}-10-03`, name: 'Tag der Dt. Einheit' },
+    { date: `${year}-11-01`, name: 'Allerheiligen' },
     { date: `${year}-12-25`, name: '1. Weihnachtstag' },
     { date: `${year}-12-26`, name: '2. Weihnachtstag' },
   ];

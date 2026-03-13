@@ -8,6 +8,9 @@ let currentUser = null;  // { id, code, name, role }
 let syncBusy = false;
 let _realtimeChannel = null;
 let _realtimePauseUntil = 0; // Timestamp-basiert statt Boolean (verhindert Race-Conditions)
+let _syncRetryCount = 0;
+let _syncRetryTimer = null;
+let _lastSyncAt = null; // ISO timestamp des letzten erfolgreichen Pull
 
 function getSupabase() {
   if (!_supabaseClient) {
@@ -47,14 +50,14 @@ function setSyncStatus(state, text, sub) {
   const dot = document.getElementById('headerSyncDot');
   if (bar) {
     bar.className = `sync-status-bar sync-${state}`;
-    const icons = { idle: '○', ok: '✓', busy: '⟳', error: '✕' };
+    const icons = { idle: '○', ok: '✓', busy: '⟳', error: '✕', pending: '⏳' };
     if (icon) { icon.textContent = icons[state] || '○'; icon.className = state === 'busy' ? 'spin' : ''; }
     if (txt) txt.textContent = text;
     if (sub && last) last.textContent = sub;
   }
   if (dot) {
-    const dotIcons = { idle: '', ok: '✓ Sync', busy: '⟳ Sync', error: '✕ Sync' };
-    const dotColors = { idle: 'var(--muted)', ok: 'var(--green)', busy: 'var(--accent)', error: 'var(--red)' };
+    const dotIcons = { idle: '', ok: '✓ Sync', busy: '⟳ Sync', error: '✕ Sync', pending: '⏳ Sync' };
+    const dotColors = { idle: 'var(--muted)', ok: 'var(--green)', busy: 'var(--accent)', error: 'var(--red)', pending: 'var(--accent2)' };
     dot.textContent = dotIcons[state] || '';
     dot.style.color = dotColors[state] || 'var(--muted)';
   }
@@ -81,7 +84,8 @@ function renderSyncPage() {
   } else {
     login.style.display = 'none'; connected.style.display = '';
     document.getElementById('syncUserName').textContent = currentUser.name;
-    document.getElementById('syncUserRole').textContent = currentUser.role === 'admin' ? 'Admin' : 'Mitarbeiter';
+    const roleLabels = { admin: 'Admin', moderator: 'Moderator', worker: 'Mitarbeiter' };
+    document.getElementById('syncUserRole').textContent = roleLabels[currentUser.role] || 'Mitarbeiter';
     document.getElementById('syncEntryCount').textContent = data.entries.length;
     setSyncStatus('ok', 'Angemeldet als ' + currentUser.name);
   }
@@ -196,7 +200,8 @@ async function syncPush() {
         customer_id: e.customerId || null, customer_name: e.customerName || null,
         location_id: e.locationId || null, location_name: e.locationName || null,
         task: e.task || null, title: e.title || null, note: e.note || null,
-        transferred: e.transferred || false, deleted: false
+        transferred: e.transferred || false, deleted: false,
+        travel_min: e.travelMin || 0, travel_km: e.travelKm || 0
       })),
       ...(data.deletedIds || []).map(id => ({
         id: String(id), date: '1970-01-01',
@@ -233,12 +238,34 @@ async function syncPush() {
     if (el) el.textContent = ts;
     const ec = document.getElementById('syncEntryCount');
     if (ec) ec.textContent = data.entries.length;
+    _syncRetryCount = 0; // Erfolg → Reset
   } catch(e) {
-    setSyncStatus('error', 'Upload fehlgeschlagen: ' + e.message);
+    const isNetworkError = !navigator.onLine || (e instanceof TypeError && e.message.includes('fetch'));
+    if (isNetworkError && _syncRetryCount < 3) {
+      setSyncStatus('pending', 'Offline – Erneuter Versuch...');
+      scheduleSyncRetry();
+    } else {
+      setSyncStatus('error', 'Upload fehlgeschlagen: ' + e.message);
+    }
   }
   syncBusy = false;
   // Realtime bleibt pausiert bis syncPull in syncNow() fertig ist (oder 10s Failsafe)
   _realtimePauseUntil = Math.max(_realtimePauseUntil, Date.now() + 3000);
+}
+
+function scheduleSyncRetry() {
+  if (_syncRetryTimer) clearTimeout(_syncRetryTimer);
+  _syncRetryCount++;
+  const delays = [5000, 15000, 30000];
+  const delay = delays[Math.min(_syncRetryCount - 1, delays.length - 1)];
+  const secs = Math.round(delay / 1000);
+  setSyncStatus('pending', `Offline – Erneuter Versuch in ${secs}s...`);
+  _syncRetryTimer = setTimeout(() => {
+    _syncRetryTimer = null;
+    if (navigator.onLine) syncNow();
+    else if (_syncRetryCount < 3) scheduleSyncRetry();
+    else setSyncStatus('error', 'Sync fehlgeschlagen – bitte manuell versuchen');
+  }, delay);
 }
 
 function deduplicateLocalEntries() {
@@ -316,7 +343,8 @@ async function syncPull() {
       id: e.id, date: e.date, from: e.from_time, to: e.to_time,
       breakMin: e.break_min, customerId: e.customer_id, customerName: e.customer_name,
       locationId: e.location_id, locationName: e.location_name,
-      task: e.task, title: e.title, note: e.note, transferred: e.transferred
+      task: e.task, title: e.title, note: e.note, transferred: e.transferred,
+      travelMin: e.travel_min || 0, travelKm: e.travel_km || 0
     }));
 
     // ── CRITICAL FIX: Lokale noch-nicht-gepushte Einträge bewahren ──
@@ -331,8 +359,33 @@ async function syncPull() {
       !localDeletedIds.includes(e.id)      // nicht lokal gelöscht
     );
 
+    // ── Konflikt-Erkennung ──
+    const conflicts = [];
+    if (_lastSyncAt) {
+      const serverEntryMap = new Map(serverEntries.map(e => [e.id, e]));
+      for (const localEntry of data.entries) {
+        if (!localEntry._modifiedAt || localEntry._modifiedAt <= _lastSyncAt) continue;
+        const serverVersion = serverEntryMap.get(localEntry.id);
+        if (!serverVersion) continue;
+        // Vergleiche Content-Hash
+        const localHash = entryContentHash(localEntry);
+        const serverHash = entryContentHash(serverVersion);
+        if (localHash !== serverHash) {
+          conflicts.push({ local: { ...localEntry }, server: { ...serverVersion } });
+        }
+      }
+    }
+
     data.entries = [...serverEntries, ...pendingLocalEntries];
     data.entries.sort((a, b) => (b.date + b.from).localeCompare(a.date + a.from));
+
+    // Bei Konflikten: Lokale Versionen temporär behalten bis User entscheidet
+    if (conflicts.length > 0) {
+      for (const c of conflicts) {
+        const idx = data.entries.findIndex(e => e.id === c.local.id);
+        if (idx !== -1) data.entries[idx] = c.local; // Lokale Version erstmal behalten
+      }
+    }
 
     // ── Kunden & Standorte mergen (Schutz vor Race-Condition) ──
     // Wenn Server-Locations NULL customer_id haben (wegen FK-CASCADE zwischen
@@ -371,14 +424,73 @@ async function syncPull() {
     renderSaldo();
     populateAllSelects();
     renderSyncPage();
+    _lastSyncAt = new Date().toISOString();
     const ts = new Date().toLocaleTimeString('de-DE');
     setSyncStatus('ok', 'Synchronisiert', `Zuletzt: ${ts}`);
     const el = document.getElementById('syncLastDown');
     if (el) el.textContent = ts;
+
+    // Konflikte anzeigen (nach Render, damit UI aktuell ist)
+    if (conflicts.length > 0) {
+      showConflictModal(conflicts);
+    }
   } catch(e) {
     setSyncStatus('error', 'Download fehlgeschlagen: ' + e.message);
   }
   syncBusy = false;
+}
+
+function entryContentHash(e) {
+  return [e.date, e.from, e.to, e.breakMin, e.customerId, e.task, e.title, e.note, e.transferred, e.travelMin, e.travelKm].join('|');
+}
+
+// ── Konflikt-Modal ──
+let _pendingConflicts = [];
+let _conflictIdx = 0;
+
+function showConflictModal(conflicts) {
+  _pendingConflicts = conflicts;
+  _conflictIdx = 0;
+  renderConflict();
+  document.getElementById('conflictModalOverlay').classList.remove('hidden');
+}
+
+function renderConflict() {
+  if (_conflictIdx >= _pendingConflicts.length) {
+    document.getElementById('conflictModalOverlay').classList.add('hidden');
+    save();
+    if (getAutoSyncEnabled()) syncPush();
+    return;
+  }
+  const c = _pendingConflicts[_conflictIdx];
+  const dateLabel = new Date(c.local.date + 'T12:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  document.getElementById('conflictTitle').textContent = `\u26A0 Sync-Konflikt \u00b7 ${dateLabel}`;
+  document.getElementById('conflictVersions').innerHTML = `
+    <div class="conflict-version local">
+      <div class="conflict-version-label">Deine Version</div>
+      <div>${c.local.from} \u2192 ${c.local.to} \u00b7 ${escapeHtml(c.local.customerName || '\u2013')}</div>
+      <div style="font-size:0.72rem;color:var(--muted)">${escapeHtml(c.local.task || '')} ${c.local.breakMin ? '\u00b7 ' + c.local.breakMin + 'min Pause' : ''} ${c.local.title ? '\u00b7 ' + escapeHtml(c.local.title) : ''}</div>
+    </div>
+    <div class="conflict-version server">
+      <div class="conflict-version-label">Server-Version</div>
+      <div>${c.server.from} \u2192 ${c.server.to} \u00b7 ${escapeHtml(c.server.customerName || '\u2013')}</div>
+      <div style="font-size:0.72rem;color:var(--muted)">${escapeHtml(c.server.task || '')} ${c.server.breakMin ? '\u00b7 ' + c.server.breakMin + 'min Pause' : ''} ${c.server.title ? '\u00b7 ' + escapeHtml(c.server.title) : ''}</div>
+    </div>`;
+  document.getElementById('conflictCounter').textContent =
+    `${_conflictIdx + 1} von ${_pendingConflicts.length}`;
+}
+
+function resolveConflict(choice) {
+  const c = _pendingConflicts[_conflictIdx];
+  if (choice === 'server') {
+    const idx = data.entries.findIndex(e => e.id === c.local.id);
+    if (idx !== -1) data.entries[idx] = c.server;
+  }
+  // 'local' → entry bleibt wie es ist, wird beim nächsten Push hochgeladen
+  _conflictIdx++;
+  renderConflict();
+  renderEntries();
+  renderSaldo();
 }
 
 async function syncNow() {
@@ -410,10 +522,12 @@ function setupRealtimeSync() {
 
 function updateAdminUI() {
   const isAdmin = currentUser?.role === 'admin';
+  const isModerator = currentUser?.role === 'moderator';
+  const showTeam = isAdmin || isModerator;
   const teamTab = document.getElementById('teamTab');
   const bnavTeam = document.getElementById('bnav-team');
   const benutzerItem = document.getElementById('mehrBenutzerItem');
-  if (teamTab) teamTab.style.display = isAdmin ? '' : 'none';
-  if (bnavTeam) bnavTeam.style.display = isAdmin ? '' : 'none';
-  if (benutzerItem) benutzerItem.style.display = isAdmin ? '' : 'none';
+  if (teamTab) teamTab.style.display = showTeam ? '' : 'none';
+  if (bnavTeam) bnavTeam.style.display = showTeam ? '' : 'none';
+  if (benutzerItem) benutzerItem.style.display = isAdmin ? '' : 'none'; // Nur Admin
 }

@@ -2,15 +2,21 @@
 // ============================================================
 function exportCSV() {
   const filtered = getFilteredEntries();
-  const rows = [['Datum','Von','Bis','Pause (min)','Nettostunden','Kunde','Standort','Tätigkeit','Titel','Beschreibung']];
+  const rows = [['Datum','Von','Bis','Pause (min)','Nettostunden','Kunde','Standort','Tätigkeit','Titel','Beschreibung','Fahrzeit (min)','Kilometer']];
+  let totalTravelMin = 0, totalTravelKm = 0;
   filtered.forEach(e => {
     const dur = calcDuration(e.from, e.to, e.breakMin);
     const hours = (dur.total / 60).toFixed(2).replace('.', ',');
+    totalTravelMin += e.travelMin || 0;
+    totalTravelKm += e.travelKm || 0;
     rows.push([
       e.date, e.from, e.to, e.breakMin || 0, hours,
-      e.customerName || '', e.locationName || '', e.task || '', e.title || '', e.note || ''
+      e.customerName || '', e.locationName || '', e.task || '', e.title || '', e.note || '',
+      e.travelMin || 0, e.travelKm || 0
     ]);
   });
+  rows.push(['','','','','','','','','','','Gesamt:','']);
+  rows.push(['','','','','','','','','','',totalTravelMin + ' min', totalTravelKm.toFixed(1) + ' km']);
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\n');
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -113,6 +119,8 @@ function exportPDF(fromDate, toDate, customerId) {
   const totalMins = filtered.reduce((s, e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const totalH = Math.floor(totalMins / 60);
   const totalM = totalMins % 60;
+  const pdfTotalTravelMin = filtered.reduce((s, e) => s + (e.travelMin || 0), 0);
+  const pdfTotalTravelKm = filtered.reduce((s, e) => s + (e.travelKm || 0), 0);
 
   function fmtDate(iso) {
     return new Date(iso + 'T12:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -134,6 +142,7 @@ function exportPDF(fromDate, toDate, customerId) {
     const taskBadge = e.task ? `<span style="background:${taskBg};color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;letter-spacing:0.5px">${e.task}</span>` : '';
     const breakStr = e.breakMin > 0 ? `${e.breakMin} min` : '\u2013';
     const desc = [e.title, e.note].filter(Boolean).join(' \u00b7 ') || '';
+    const travelStr = (e.travelMin || e.travelKm) ? `${e.travelMin ? e.travelMin + 'min' : ''}${e.travelMin && e.travelKm ? ' / ' : ''}${e.travelKm ? e.travelKm + 'km' : ''}` : '\u2013';
     return `
       <tr>
         <td>${dateStr}</td>
@@ -143,6 +152,7 @@ function exportPDF(fromDate, toDate, customerId) {
         <td>${e.customerName || '\u2013'}</td>
         <td>${e.locationName && e.locationName !== '\u2013 Standort w\u00e4hlen \u2013' ? e.locationName : '\u2013'}</td>
         <td>${taskBadge}</td>
+        <td style="font-size:10px">${travelStr}</td>
         <td style="color:#555;font-size:10px">${desc}</td>
       </tr>`;
   }).join('');
@@ -199,6 +209,7 @@ function exportPDF(fromDate, toDate, customerId) {
       <th>Kunde</th>
       <th>Standort</th>
       <th>T\u00e4tigkeit</th>
+      <th>Fahrt</th>
       <th>Beschreibung</th>
     </tr>
   </thead>
@@ -207,7 +218,7 @@ function exportPDF(fromDate, toDate, customerId) {
     <tr class="total-row">
       <td colspan="3">Gesamt (${filtered.length} Eintr\u00e4ge)</td>
       <td style="text-align:right">${totalH}h ${String(totalM).padStart(2,'0')}m</td>
-      <td colspan="4"></td>
+      <td colspan="5"></td>
     </tr>
   </tbody>
 </table>
@@ -225,6 +236,10 @@ function exportPDF(fromDate, toDate, customerId) {
     <div class="summary-label">Zeitraum</div>
     <div class="summary-val" style="font-size:13px">${periodLabel}</div>
   </div>
+  ${pdfTotalTravelMin > 0 || pdfTotalTravelKm > 0 ? `<div class="summary-item">
+    <div class="summary-label">Fahrzeit / km</div>
+    <div class="summary-val" style="font-size:13px">${pdfTotalTravelMin ? pdfTotalTravelMin + 'min' : ''}${pdfTotalTravelMin && pdfTotalTravelKm ? ' / ' : ''}${pdfTotalTravelKm ? pdfTotalTravelKm.toFixed(1) + 'km' : ''}</div>
+  </div>` : ''}
 </div>
 
 <div class="footer">
