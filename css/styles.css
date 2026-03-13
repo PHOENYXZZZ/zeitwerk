@@ -15,6 +15,7 @@
     --radius:   10px;
     --radius-sm:6px;
     --radius-lg:16px;
+    --icon:     #9a9488;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -25,12 +26,13 @@
       --accent:   #e8c547;
       --accent2:  #c4956a;
       --text:     #e8e4d9;
-      --muted:    #7a7568;
+      --muted:    #8a8578;
       --green:    #6fcf97;
       --red:      #eb5757;
       --blue:     #5b9bd5;
       --shadow:   0 1px 4px rgba(0,0,0,0.3);
       --shadow-sm:0 1px 3px rgba(0,0,0,0.25);
+      --icon:     #8a857a;
     }
   }
 
@@ -292,13 +294,13 @@
     grid-template-columns: 90px 1fr auto auto;
     gap: 0.75rem;
     align-items: center;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.75rem;
     transition: border-color 0.15s;
-    animation: slideIn 0.2s ease;
+    animation: slideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
   @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
   .entry:hover { border-color: var(--muted); }
 
@@ -321,7 +323,7 @@
 
   /* TRANSFER BUTTON */
   .transfer-btn {
-    background: none; border: 1.5px solid var(--border); color: var(--border);
+    background: none; border: 1.5px solid var(--icon); color: var(--icon);
     border-radius: 50%; width: 28px; height: 28px; font-size: 0.8rem;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
     margin: 0.35rem auto 0; transition: all 0.2s; min-height: unset; padding: 0;
@@ -390,7 +392,7 @@
   .entry-delete {
     background: none;
     border: none;
-    color: var(--border);
+    color: var(--icon);
     cursor: pointer;
     font-size: 1.1rem;
     padding: 0.2rem 0.3rem;
@@ -411,7 +413,7 @@
   .entry-edit {
     background: none;
     border: none;
-    color: var(--border);
+    color: var(--icon);
     cursor: pointer;
     font-size: 1rem;
     padding: 0.2rem 0.3rem;
@@ -636,38 +638,96 @@
   .week-total-label { color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-size: 0.65rem; }
   .week-total-val { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 300; color: var(--accent); }
 
-  /* MONTH CALENDAR GRID */
-  .month-cal-grid {
+  /* MINI CALENDAR (Month View) */
+  .mini-cal-grid {
     display: grid; grid-template-columns: repeat(7, 1fr);
-    gap: 3px; margin-bottom: 1rem;
+    gap: 2px; margin-bottom: 1.25rem; text-align: center;
   }
-  .month-cal-header-cell {
-    text-align: center; font-size: 0.6rem; text-transform: uppercase;
-    letter-spacing: 1px; color: var(--muted); padding: 0.4rem 0;
+  .mini-cal-header {
+    font-size: 0.55rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 0.3rem 0;
   }
-  .month-cal-cell {
+  .mini-cal-day {
+    padding: 0.4rem 0.15rem; border-radius: 50%; font-size: 0.75rem;
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+    position: relative; font-family: 'Fraunces', serif; font-weight: 300;
+    color: var(--text); aspect-ratio: 1; display: flex; align-items: center;
+    justify-content: center; -webkit-tap-highlight-color: transparent;
+  }
+  .mini-cal-day:hover { background: var(--surface2); }
+  .mini-cal-day.today {
+    background: var(--accent); color: #0f0e0b; font-weight: 500;
+  }
+  .mini-cal-day.has-entries::after {
+    content: ''; position: absolute; bottom: 2px; left: 50%;
+    transform: translateX(-50%); width: 4px; height: 4px;
+    border-radius: 50%; background: var(--accent);
+  }
+  .mini-cal-day.today.has-entries::after { background: #0f0e0b; }
+  .mini-cal-day.vacation { color: var(--blue); }
+  .mini-cal-day.vacation::after { background: var(--blue) !important; }
+  .mini-cal-day.holiday { color: var(--red); }
+  .mini-cal-day.holiday::after { background: var(--red) !important; }
+  .mini-cal-day.other-month { opacity: 0.3; }
+  .mini-cal-day.selected { background: var(--surface2); box-shadow: inset 0 0 0 1.5px var(--accent); }
+
+  /* Month day list (below mini calendar) */
+  .month-day-card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 0.4rem; min-height: 70px;
-    font-size: 0.68rem; transition: border-color 0.15s; cursor: default;
-    position: relative;
+    border-radius: var(--radius); margin-bottom: 0.6rem;
+    overflow: hidden; box-shadow: var(--shadow-sm);
+    animation: slideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  .month-cal-cell.other-month { opacity: 0.35; }
-  .month-cal-cell.today-cell { border-color: var(--accent); }
-  .month-cal-cell-day {
-    font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem;
-    font-family: 'Fraunces', serif; font-weight: 300;
+  .month-day-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.6rem 1rem; border-bottom: 1px solid var(--border);
+    background: var(--surface2);
   }
-  .today-cell .month-cal-cell-day { color: var(--accent); }
-  .month-cal-entry-dot {
-    display: block; font-size: 0.6rem; color: var(--text);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    margin-bottom: 1px; padding: 1px 2px;
-    background: rgba(232,197,71,0.08); border-radius: 1px;
+  .month-day-header.today-header { border-left: 3px solid var(--accent); }
+  .month-day-header.vacation-header { border-left: 3px solid var(--blue); }
+  .month-day-header.holiday-header { border-left: 3px solid var(--red); }
+  .month-day-name { font-size: 0.72rem; font-weight: 500; }
+  .month-day-date { font-size: 1rem; font-family: 'Fraunces', serif; font-weight: 300; }
+  .month-day-total { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 300; color: var(--accent); }
+  .month-day-entries { padding: 0.5rem 0; }
+  .month-day-entry-row {
+    display: grid; grid-template-columns: 70px 1fr auto;
+    gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.75rem;
+    align-items: center; border-bottom: 1px solid var(--border);
   }
-  .month-cal-total {
-    position: absolute; bottom: 3px; right: 4px;
-    font-size: 0.6rem; color: var(--accent); font-family: 'Fraunces', serif;
+  .month-day-entry-row:last-child { border-bottom: none; }
+  .month-day-empty {
+    padding: 0.5rem 1rem; font-size: 0.72rem; color: var(--muted);
+    font-style: italic;
   }
+  .month-day-badge {
+    display: inline-block; font-size: 0.6rem; padding: 0.15rem 0.5rem;
+    border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+    font-weight: 500;
+  }
+  .month-day-badge.vacation-badge { background: rgba(91,155,213,0.15); color: var(--blue); }
+  .month-day-badge.holiday-badge { background: rgba(235,87,87,0.15); color: var(--red); }
+
+  /* Vacation action in day card */
+  .month-day-actions {
+    display: flex; gap: 0.5rem; padding: 0.4rem 1rem 0.6rem;
+  }
+  .btn-vacation-toggle {
+    font-size: 0.65rem; padding: 0.3rem 0.75rem; border-radius: 4px;
+    background: rgba(91,155,213,0.1); color: var(--blue); border: 1px solid var(--blue);
+    cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+    transition: all 0.15s; min-height: unset;
+  }
+  .btn-vacation-toggle:hover { background: rgba(91,155,213,0.2); }
+  .btn-vacation-toggle.remove { background: transparent; color: var(--red); border-color: var(--red); }
+
+  /* Week group label */
+  .month-week-group {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--muted); padding: 0.75rem 0 0.35rem; display: flex;
+    justify-content: space-between; align-items: center;
+  }
+  .month-week-group-val { color: var(--accent); font-family: 'Fraunces', serif; font-size: 0.9rem; font-weight: 300; letter-spacing: 0; text-transform: none; }
   .month-summary-list { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.75rem; }
   .month-summary-week {
     display: flex; justify-content: space-between; align-items: center;
@@ -676,6 +736,35 @@
   }
   .month-summary-week-label { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; }
   .month-summary-week-val { color: var(--accent); font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 300; }
+
+  /* VACATION & OVERTIME PANEL */
+  .vacation-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.2rem; margin-bottom: 1.25rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .vacation-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .vacation-header-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+  .vacation-count { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 300; color: var(--blue); }
+  .vacation-bar-wrap {
+    height: 6px; background: var(--surface2); border-radius: 3px;
+    overflow: hidden; margin-bottom: 0.5rem;
+  }
+  .vacation-bar { height: 100%; background: var(--blue); border-radius: 3px; transition: width 0.5s; }
+  .vacation-details { font-size: 0.72rem; color: var(--muted); display: flex; justify-content: space-between; }
+  .overtime-val { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 300; }
+  .vacation-settings-row {
+    display: flex; gap: 1rem; align-items: center; margin-top: 0.75rem;
+    padding-top: 0.75rem; border-top: 1px solid var(--border);
+  }
+  .vacation-settings-row label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; flex: 1; }
+  .vacation-settings-row input {
+    width: 70px; text-align: center; font-size: 0.9rem;
+    padding: 0.4rem; border-radius: 4px;
+  }
 
   /* YEAR VIEW */
   .year-month-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
@@ -789,7 +878,7 @@
     .bottom-nav-item {
       flex: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      padding: 0.55rem 0.25rem 0.4rem;
+      padding: 0.65rem 0.25rem 0.5rem;
       gap: 0.2rem; cursor: pointer;
       border: none; background: none;
       color: var(--muted); font-family: 'DM Mono', monospace;
@@ -801,10 +890,10 @@
     .bottom-nav-item:active { color: var(--text); }
 
     /* Pages get top padding */
-    .page { padding: 1rem; padding-bottom: 1rem; }
+    .page { padding: 1.15rem 1rem 1rem; }
 
     /* Panel adjustments */
-    .panel { padding: 1.1rem; margin-bottom: 1rem; border-radius: 4px; }
+    .panel { padding: 1.1rem; margin-bottom: 1.15rem; border-radius: 4px; }
     .panel-accent::before { height: 3px; }
 
     /* Clock bigger on mobile */
@@ -815,7 +904,7 @@
     button { min-height: 44px; font-size: 0.78rem; padding: 0.7rem 1rem; }
     .btn-start { font-size: 1rem; padding: 0.9rem 2rem; width: 100%; margin-bottom: 0.5rem; }
     .btn-stop, .btn-break { flex: 1; }
-    .controls { flex-direction: column; gap: 0.5rem; }
+    .controls { flex-direction: column; gap: 0.6rem; }
     .controls .btn-break, .controls .btn-stop {
       flex: none; width: 100%;
     }
@@ -835,7 +924,7 @@
 
     /* Saldo panel: stacked */
     .saldo-panel { flex-direction: column; gap: 0; padding: 0; overflow: hidden; }
-    .saldo-item { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); }
+    .saldo-item { padding: 1rem 1.1rem; border-bottom: 1px solid var(--border); }
     .saldo-item:last-child { border-bottom: none; }
     .saldo-divider { display: none; }
     .saldo-val { font-size: 1.4rem; }
@@ -987,16 +1076,15 @@
     .uebersicht-nav { gap: 0.5rem; }
 
     /* Week view: compact */
-    .week-day-col { margin-bottom: 0.4rem; }
+    .week-day-col { margin-bottom: 0.6rem; }
     .week-day-date { font-size: 1.1rem; }
     .week-entry-row { grid-template-columns: 70px 1fr auto; padding: 0.5rem 0.75rem; font-size: 0.73rem; }
     .week-entry-time { font-size: 0.7rem; }
     .week-entry-dur { font-size: 0.9rem; }
 
-    /* Month calendar: hide trailing cells on mobile */
-    .month-cal-cell { min-height: 55px; padding: 0.25rem; }
-    .month-cal-cell-day { font-size: 0.7rem; }
-    .month-cal-entry-dot { font-size: 0.55rem; }
+    /* Mini calendar mobile adjustments */
+    .mini-cal-day { font-size: 0.72rem; }
+    .month-day-entry-row { grid-template-columns: 65px 1fr auto; padding: 0.45rem 0.75rem; font-size: 0.73rem; }
 
     /* Year grid: 2 cols */
     .year-month-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
@@ -1126,9 +1214,9 @@
   .mehr-menu { display: flex; flex-direction: column; gap: 0.4rem; }
   .mehr-menu-title { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 0.5rem; margin-top: 1rem; }
   .mehr-item {
-    display: flex; align-items: center; gap: 0.9rem;
+    display: flex; align-items: center; gap: 1rem;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 0.9rem 1rem; cursor: pointer; text-align: left;
+    padding: 1rem 1.1rem; cursor: pointer; text-align: left;
     color: var(--text); transition: all 0.15s; min-height: unset; width: 100%;
     -webkit-tap-highlight-color: transparent;
     font-family: 'DM Mono', monospace;
@@ -1252,3 +1340,87 @@
   .pin-key.empty { background: transparent; border-color: transparent; pointer-events: none; }
   .pin-setup-hint { font-size: 0.68rem; color: var(--muted); text-align: center; max-width: 260px; line-height: 1.6; }
   .pin-mode-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+/* ============================================================
+   TOAST NOTIFICATIONS
+============================================================ */
+.toast {
+  position: fixed; top: 1rem; left: 50%; transform: translateX(-50%) translateY(-12px) scale(0.95);
+  z-index: 9999; padding: 0.75rem 1.5rem;
+  border-radius: var(--radius); font-size: 0.78rem; font-family: 'DM Mono', monospace;
+  color: #fff; opacity: 0; pointer-events: none;
+  transition: opacity 0.28s, transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-width: 90vw; text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+.toast-show {
+  opacity: 1; pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+.toast-info    { background: var(--accent); color: #0f0e0b; }
+.toast-success { background: var(--green); }
+.toast-error   { background: var(--red); }
+
+/* ============================================================
+   APPLE-STYLE MICRO-ANIMATIONS
+============================================================ */
+
+/* Page transitions */
+.page { animation: pageFadeIn 0.25s ease-out; }
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Button press feedback */
+button:active { transform: scale(0.97); }
+.bottom-nav-item.active .nav-icon {
+  transform: scale(1.08);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Modal animations */
+.edit-modal-overlay, .split-modal-overlay {
+  animation: overlayFadeIn 0.2s ease-out;
+}
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.edit-modal-box, .split-modal-box {
+  animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Focus ring */
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 3px rgba(184,135,46,0.12);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+@media (prefers-color-scheme: dark) {
+  input:focus, select:focus, textarea:focus {
+    box-shadow: 0 0 0 3px rgba(232,197,71,0.12);
+  }
+}
+
+/* Smooth card transitions */
+.panel, .entry, .mehr-item, .saldo-panel, .week-day-col {
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              border-color 0.15s, box-shadow 0.2s;
+}
+
+/* Details chevron improved timing */
+.quick-details summary::after {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

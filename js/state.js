@@ -6,7 +6,11 @@ let timerStart = null, timerInterval = null, onBreak = false, breakStart = null,
 let data = {
   entries: [],
   customers: [],   // [{id, name}]
-  locations: []    // [{id, customerId, name}]
+  locations: [],   // [{id, customerId, name}]
+  settings: {
+    annualVacationDays: 30,
+    overtimeCarryoverMins: 0
+  }
 };
 
 function load() {
@@ -23,6 +27,10 @@ function load() {
     }
   }
   data.deletedIds = data.deletedIds || [];
+  // Migration: settings
+  if (!data.settings) data.settings = {};
+  if (typeof data.settings.annualVacationDays !== 'number') data.settings.annualVacationDays = 30;
+  if (typeof data.settings.overtimeCarryoverMins !== 'number') data.settings.overtimeCarryoverMins = 0;
   // Migration: Nummer-IDs → UUIDs (Entries, Kunden, Standorte)
   let migrated = false;
   for (const e of (data.entries || [])) {
@@ -80,12 +88,16 @@ function isoDate(d) {
 }
 
 function getWeekSollMins(mondayDate) {
-  // Determine how many worked weekdays in the week (up to today)
+  // Determine how many worked weekdays in the week (up to today),
+  // excluding holidays and vacation days
   const today = new Date(); today.setHours(0,0,0,0);
   let sollMins = 0;
   for (let i = 0; i < 5; i++) { // Mo-Fr
     const d = new Date(mondayDate); d.setDate(mondayDate.getDate() + i);
-    if (d <= today) sollMins += WOCHENSOLL_MIN / 5;
+    if (d <= today) {
+      const ds = isoDate(d);
+      sollMins += getAdjustedDaySoll(ds);
+    }
   }
   return sollMins;
 }

@@ -8,7 +8,12 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.bottom-nav-item').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
+  const pageEl = document.getElementById('page-' + id);
+  pageEl.classList.add('active');
+  // Re-trigger page fade-in animation
+  pageEl.style.animation = 'none';
+  pageEl.offsetHeight; // force reflow
+  pageEl.style.animation = '';
   // Desktop tabs
   [...document.querySelectorAll('.tab')].forEach(t => {
     if (t.getAttribute('onclick')?.includes(`'${id}'`)) t.classList.add('active');

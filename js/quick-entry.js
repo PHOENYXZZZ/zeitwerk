@@ -187,7 +187,7 @@ function renderQuickSaldo() {
   const today = new Date();
   const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
   const monday = new Date(today); monday.setDate(today.getDate() - dow);
-  const weekMins = data.entries.filter(e => e.date >= isoDate(monday))
+  const weekMins = data.entries.filter(e => e.date >= isoDate(monday) && e.task !== '__VACATION__')
     .reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const diff = weekMins - getWeekSollMins(monday);
   const h = Math.floor(weekMins/60), m = weekMins%60;
@@ -201,20 +201,20 @@ function renderQuickSaldo() {
 }
 
 function renderMehrSaldo() {
-  // Week
+  // Week (exclude vacation entries)
   const today = new Date(); today.setHours(0,0,0,0);
   const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
   const monday = new Date(today); monday.setDate(today.getDate() - dow);
-  const weekMins = data.entries.filter(e => e.date >= isoDate(monday))
+  const weekMins = data.entries.filter(e => e.date >= isoDate(monday) && e.task !== '__VACATION__')
     .reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const weekDiff = weekMins - getWeekSollMins(monday);
-  // Month
+  // Month (exclude vacation entries, use adjusted soll)
   const mStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-  const monthMins = data.entries.filter(e => e.date.startsWith(mStr))
+  const monthMins = data.entries.filter(e => e.date.startsWith(mStr) && e.task !== '__VACATION__')
     .reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   let monthSoll = 0;
   const cur = new Date(today.getFullYear(), today.getMonth(), 1);
-  while (cur <= today) { const d=cur.getDay(); if(d!==0&&d!==6) monthSoll+=WOCHENSOLL_MIN/5; cur.setDate(cur.getDate()+1); }
+  while (cur <= today) { monthSoll += getAdjustedDaySoll(isoDate(cur)); cur.setDate(cur.getDate()+1); }
   const monthDiff = monthMins - monthSoll;
 
   const wv = document.getElementById('mehrWeekVal');
@@ -225,6 +225,64 @@ function renderMehrSaldo() {
   if (ws) ws.textContent = fmtDur(weekMins);
   if (mv) { mv.textContent = fmtSaldo(monthDiff); mv.className = `mehr-saldo-val ${saldoClass(monthDiff)}`; }
   if (ms) ms.textContent = fmtDur(monthMins);
+
+  // Vacation panel
+  renderVacationPanel();
+}
+
+function renderVacationPanel() {
+  const panel = document.getElementById('vacationPanel');
+  if (!panel) return;
+  const y = new Date().getFullYear();
+  const used = getVacationDaysInYear(y);
+  const total = data.settings.annualVacationDays;
+  const remaining = total - used;
+  const pct = total > 0 ? Math.min(100, Math.round(used / total * 100)) : 0;
+
+  // Overtime calculation: sum all work mins this year - sum all soll mins for worked weekdays
+  const yearStart = `${y}-01-01`;
+  const todayStr = isoDate(new Date());
+  const yearWorkMins = data.entries
+    .filter(e => e.date >= yearStart && e.date <= todayStr && e.task !== '__VACATION__')
+    .reduce((s,e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
+  let yearSollMins = 0;
+  const d = new Date(y, 0, 1);
+  const todayDate = new Date(); todayDate.setHours(0,0,0,0);
+  while (d <= todayDate) {
+    yearSollMins += getAdjustedDaySoll(isoDate(d));
+    d.setDate(d.getDate() + 1);
+  }
+  const overtimeMins = yearWorkMins - yearSollMins + (data.settings.overtimeCarryoverMins || 0);
+
+  panel.innerHTML = `
+    <div class="vacation-header">
+      <span class="vacation-header-label">Urlaub ${y}</span>
+      <span class="vacation-count">${used} / ${total}</span>
+    </div>
+    <div class="vacation-bar-wrap">
+      <div class="vacation-bar" style="width:${pct}%"></div>
+    </div>
+    <div class="vacation-details">
+      <span>Resturlaub: ${remaining} Tage</span>
+      <span>Feiertage: ${getHolidaysForYear(y).length}</span>
+    </div>
+    <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <span class="vacation-header-label">Überstunden</span>
+      <span class="overtime-val ${saldoClass(overtimeMins)}">${fmtSaldo(overtimeMins)}</span>
+    </div>
+    <div class="vacation-settings-row">
+      <label>Jahresurlaub</label>
+      <input type="number" min="0" max="50" value="${total}" onchange="updateVacationSettings('annualVacationDays', parseInt(this.value))">
+      <label>ÜStd. Vortrag (h)</label>
+      <input type="number" step="0.5" value="${((data.settings.overtimeCarryoverMins || 0)/60).toFixed(1)}" onchange="updateVacationSettings('overtimeCarryoverMins', Math.round(parseFloat(this.value)*60))">
+    </div>`;
+}
+
+function updateVacationSettings(key, value) {
+  if (isNaN(value)) return;
+  data.settings[key] = value;
+  save();
+  renderVacationPanel();
 }
 
 // ============================================================

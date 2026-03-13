@@ -77,6 +77,7 @@ function getFilteredEntries() {
   const transferred = document.getElementById('filterTransferred')?.value || '';
   const search      = (document.getElementById('filterSearch')?.value || '').toLowerCase().trim();
   return data.entries.filter(e => {
+    if (e.task === '__VACATION__') return false; // Hide vacation markers from entry list
     if (month && !e.date.startsWith(month)) return false;
     if (customer && String(e.customerId) !== String(customer)) return false;
     if (task && e.task !== task) return false;
@@ -136,7 +137,7 @@ function renderEntries() {
   const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
   const monday = new Date(today); monday.setDate(today.getDate() - dow);
   const mondayStr = isoDate(monday);
-  const weekMins = data.entries.filter(e => e.date >= mondayStr)
+  const weekMins = data.entries.filter(e => e.date >= mondayStr && e.task !== '__VACATION__')
     .reduce((s, e) => s + calcDuration(e.from, e.to, e.breakMin).total, 0);
   const weekSollM = getWeekSollMins(monday);
   const weekDiffM = weekMins - weekSollM;
