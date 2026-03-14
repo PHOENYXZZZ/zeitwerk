@@ -1,4 +1,4 @@
-const CACHE = 'blitz-v63';
+const CACHE = 'blitz-v64';
 const ASSETS = [
   './',
   './css/styles.css',

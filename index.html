@@ -214,74 +214,50 @@
     <div id="vacationPanel" class="vacation-panel"></div>
 
     <div class="mehr-menu-title">Zeiterfassung</div>
-    <div class="mehr-menu">
-      <button class="mehr-item" onclick="showPage('zeiterfassung')">
-        <span class="mehr-icon">⏱</span>
-        <div class="mehr-item-text">
-          <div class="mehr-title">Live-Timer</div>
-          <div class="mehr-sub">Stempeluhr für direkte Zeiterfassung</div>
-        </div>
-        <span class="mehr-chevron">›</span>
+    <div class="mehr-grid">
+      <button class="mehr-card" onclick="showPage('zeiterfassung')">
+        <span class="mehr-card-icon">⏱</span>
+        <div class="mehr-card-title">Live-Timer</div>
+        <div class="mehr-card-sub">Stempeluhr</div>
       </button>
-      <button class="mehr-item" onclick="showPage('uebersicht')">
-        <span class="mehr-icon">📅</span>
-        <div class="mehr-item-text">
-          <div class="mehr-title">Übersicht</div>
-          <div class="mehr-sub">Woche, Monat und Jahresansicht</div>
-        </div>
-        <span class="mehr-chevron">›</span>
+      <button class="mehr-card" onclick="showPage('uebersicht')">
+        <span class="mehr-card-icon">📅</span>
+        <div class="mehr-card-title">Übersicht</div>
+        <div class="mehr-card-sub">Woche / Monat / Jahr</div>
       </button>
-      <button class="mehr-item" onclick="showPage('auswertung')">
-        <span class="mehr-icon">📊</span>
-        <div class="mehr-item-text">
-          <div class="mehr-title">Auswertung</div>
-          <div class="mehr-sub">Statistiken und Kundenübersicht</div>
-        </div>
-        <span class="mehr-chevron">›</span>
+      <button class="mehr-card" onclick="showPage('auswertung')">
+        <span class="mehr-card-icon">📊</span>
+        <div class="mehr-card-title">Auswertung</div>
+        <div class="mehr-card-sub">Statistiken</div>
+      </button>
+      <button class="mehr-card" onclick="showPage('stammdaten')">
+        <span class="mehr-card-icon">⚙</span>
+        <div class="mehr-card-title">Stammdaten</div>
+        <div class="mehr-card-sub">Kunden & Standorte</div>
       </button>
     </div>
 
-    <div class="mehr-menu-title">Einstellungen & Export</div>
-    <div class="mehr-menu">
-      <button class="mehr-item" onclick="showPage('stammdaten')">
-        <span class="mehr-icon">⚙</span>
-        <div class="mehr-item-text">
-          <div class="mehr-title">Stammdaten</div>
-          <div class="mehr-sub">Kunden, Standorte, PIN-Schutz</div>
-        </div>
-        <span class="mehr-chevron">›</span>
+    <div class="mehr-menu-title">Daten & Export</div>
+    <div class="mehr-grid">
+      <button class="mehr-card" id="mehrBenutzerItem" onclick="showPage('benutzer')" style="display:none">
+        <span class="mehr-card-icon">👤</span>
+        <div class="mehr-card-title">Benutzer</div>
+        <div class="mehr-card-sub">Mitarbeiter</div>
       </button>
-      <button class="mehr-item" id="mehrBenutzerItem" onclick="showPage('benutzer')" style="display:none">
-        <span class="mehr-icon">👤</span>
-        <div class="mehr-item-text">
-          <div class="mehr-title">Benutzer</div>
-          <div class="mehr-sub">Mitarbeiter anlegen &amp; verwalten</div>
-        </div>
-        <span class="mehr-chevron">›</span>
+      <button class="mehr-card" onclick="showPage('sync')">
+        <span class="mehr-card-icon" id="mehrSyncIcon">☁</span>
+        <div class="mehr-card-title">Sync</div>
+        <div class="mehr-card-sub">Geräte verbinden</div>
       </button>
-      <button class="mehr-item" onclick="showPage('sync')">
-        <span class="mehr-icon" id="mehrSyncIcon">☁</span>
-        <div class="mehr-item-text">
-          <div class="mehr-title">Sync</div>
-          <div class="mehr-sub">Daten zwischen Geräten synchronisieren</div>
-        </div>
-        <span class="mehr-chevron">›</span>
+      <button class="mehr-card" onclick="showPDFExportDialog()">
+        <span class="mehr-card-icon">📄</span>
+        <div class="mehr-card-title">PDF Export</div>
+        <div class="mehr-card-sub">Stundenzettel</div>
       </button>
-      <button class="mehr-item" onclick="showPDFExportDialog()">
-        <span class="mehr-icon">📄</span>
-        <div class="mehr-item-text">
-          <div class="mehr-title">PDF Stundenzettel</div>
-          <div class="mehr-sub">Druckfertiger Export aller Einträge</div>
-        </div>
-        <span class="mehr-chevron">›</span>
-      </button>
-      <button class="mehr-item" onclick="exportCSV()">
-        <span class="mehr-icon">⬇</span>
-        <div class="mehr-item-text">
-          <div class="mehr-title">CSV exportieren</div>
-          <div class="mehr-sub">Daten für Excel oder Numbers</div>
-        </div>
-        <span class="mehr-chevron">›</span>
+      <button class="mehr-card" onclick="exportCSV()">
+        <span class="mehr-card-icon">⬇</span>
+        <div class="mehr-card-title">CSV Export</div>
+        <div class="mehr-card-sub">Excel / Numbers</div>
       </button>
     </div>
   </div>
