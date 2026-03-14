@@ -84,8 +84,8 @@ load();
 //  AUTO-SYNC
 // ============================================================
 const AUTO_SYNC_KEY = 'blitz_auto_sync';
-function getAutoSyncEnabled() { return localStorage.getItem(AUTO_SYNC_KEY) === 'true'; }
-function setAutoSyncEnabled(v) { localStorage.setItem(AUTO_SYNC_KEY, v ? 'true' : 'false'); }
+function getAutoSyncEnabled() { return true; }
+function setAutoSyncEnabled(v) { /* no-op – Sync ist immer aktiv */ }
 
 // ============================================================
 //  STUNDEN-SALDO (Über-/Minusstunden)

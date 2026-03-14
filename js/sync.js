@@ -7,6 +7,7 @@ let _supabaseClient = null;
 let currentUser = null;  // { id, code, name, role }
 let syncBusy = false;
 let _realtimeChannel = null;
+let _realtimeMasterdataChannel = null;
 let _realtimePauseUntil = 0; // Timestamp-basiert statt Boolean (verhindert Race-Conditions)
 let _syncRetryCount = 0;
 let _syncRetryTimer = null;
@@ -90,16 +91,6 @@ function renderSyncPage() {
     document.getElementById('syncEntryCount').textContent = data.entries.length;
     setSyncStatus('ok', 'Angemeldet als ' + currentUser.name);
   }
-  // Auto-Sync Toggle-Status wiederherstellen
-  const toggle = document.getElementById('autoSyncToggle');
-  const slider = document.getElementById('autoSyncSlider');
-  const knob   = document.getElementById('autoSyncKnob');
-  if (toggle) {
-    const on = getAutoSyncEnabled();
-    toggle.checked = on;
-    if (slider) slider.style.background = on ? 'var(--accent)' : 'var(--border)';
-    if (knob)   knob.style.transform    = on ? 'translateX(16px)' : 'translateX(0)';
-  }
 }
 
 async function loginWithCode() {
@@ -153,6 +144,7 @@ async function logout() {
   }
   const sb = getSupabase();
   if (sb && _realtimeChannel) { sb.removeChannel(_realtimeChannel); _realtimeChannel = null; }
+  if (sb && _realtimeMasterdataChannel) { sb.removeChannel(_realtimeMasterdataChannel); _realtimeMasterdataChannel = null; }
   currentUser = null;
   localStorage.removeItem('blitz_user_code');
   localStorage.removeItem('blitz_user_id');
@@ -551,12 +543,13 @@ function setupRealtimeSync() {
       }
     });
   // Optionaler Stammdaten-Channel (kann fehlschlagen wenn Realtime nicht aktiviert)
+  if (_realtimeMasterdataChannel) { try { sb.removeChannel(_realtimeMasterdataChannel); } catch(e) {} }
   try {
-    sb.channel('blitz-masterdata')
+    _realtimeMasterdataChannel = sb.channel('blitz-masterdata')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `user_id=eq.${currentUser.id}` }, _onRealtimeChange)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'locations', filter: `user_id=eq.${currentUser.id}` }, _onRealtimeChange)
       .subscribe(); // Fehler still ignorieren — Pull-vor-Push ist der Hauptschutz
-  } catch(e) { /* Stammdaten-Realtime nicht verfügbar – kein Problem */ }
+  } catch(e) { _realtimeMasterdataChannel = null; /* Stammdaten-Realtime nicht verfügbar – kein Problem */ }
 }
 
 function updateAdminUI() {
