@@ -216,18 +216,11 @@ async function syncPush() {
       });
       if (error) throw error;
     }
-    // Kunden über sichere RPC synchronisieren
+    // Kunden & Standorte atomar synchronisieren (eine Transaktion)
     {
-      const { error } = await sb.rpc('sync_customers_for_code', {
+      const { error } = await sb.rpc('sync_masterdata_for_code', {
         p_code: currentUser.code,
-        p_customers: data.customers.map(c => ({ id: String(c.id), name: c.name }))
-      });
-      if (error) throw error;
-    }
-    // Standorte über sichere RPC synchronisieren
-    {
-      const { error } = await sb.rpc('sync_locations_for_code', {
-        p_code: currentUser.code,
+        p_customers: data.customers.map(c => ({ id: String(c.id), name: c.name })),
         p_locations: data.locations.map(l => ({ id: String(l.id), customer_id: l.customerId || null, name: l.name }))
       });
       if (error) throw error;
@@ -529,5 +522,5 @@ function updateAdminUI() {
   const benutzerItem = document.getElementById('mehrBenutzerItem');
   if (teamTab) teamTab.style.display = showTeam ? '' : 'none';
   if (bnavTeam) bnavTeam.style.display = showTeam ? '' : 'none';
-  if (benutzerItem) benutzerItem.style.display = isAdmin ? '' : 'none'; // Nur Admin
+  if (benutzerItem) benutzerItem.style.display = isAdmin ? 'flex' : 'none'; // Nur Admin
 }

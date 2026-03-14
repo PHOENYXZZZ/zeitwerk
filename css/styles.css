@@ -1228,6 +1228,55 @@
   .mehr-sub { font-size: 0.68rem; color: var(--muted); margin-top: 0.1rem; }
   .mehr-chevron { color: var(--border); font-size: 1rem; }
 
+  /* MEHR-SEITE: Card-Grid */
+  .mehr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .mehr-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 0.75rem;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.15s;
+    min-height: 88px;
+    width: 100%;
+    -webkit-tap-highlight-color: transparent;
+    font-family: 'DM Mono', monospace;
+    gap: 0.3rem;
+  }
+  .mehr-card:hover, .mehr-card:active {
+    background: var(--surface2);
+    border-color: var(--muted);
+  }
+  .mehr-card-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    margin-bottom: 0.15rem;
+  }
+  .mehr-card-title {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .mehr-card-sub {
+    font-size: 0.62rem;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+  @media (max-width: 360px) {
+    .mehr-grid { grid-template-columns: 1fr; }
+  }
+
   /* TIMER BANNER – erscheint unten, über der Nav-Bar */
   .timer-banner {
     position: fixed;

@@ -109,7 +109,7 @@ function exportCurrentYearPDF() {
 }
 
 function exportPDF(fromDate, toDate, customerId) {
-  let filtered = [...data.entries].filter(e => e.task !== '__VACATION__').sort((a, b) => a.date.localeCompare(b.date));
+  let filtered = [...data.entries].filter(e => e.task !== '__VACATION__').sort((a, b) => a.date.localeCompare(b.date) || a.from.localeCompare(b.from));
   if (fromDate)   filtered = filtered.filter(e => e.date >= fromDate);
   if (toDate)     filtered = filtered.filter(e => e.date <= toDate);
   if (customerId) filtered = filtered.filter(e => String(e.customerId) === String(customerId));
