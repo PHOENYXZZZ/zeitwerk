@@ -11,6 +11,7 @@ let _realtimePauseUntil = 0; // Timestamp-basiert statt Boolean (verhindert Race
 let _syncRetryCount = 0;
 let _syncRetryTimer = null;
 let _lastSyncAt = null; // ISO timestamp des letzten erfolgreichen Pull
+let _syncQueued = false; // Queue: wenn syncBusy, nach Ende nachholen
 
 function getSupabase() {
   if (!_supabaseClient) {
@@ -32,8 +33,8 @@ function getSupabase() {
       WOCHENSOLL_MIN = (currentUser.weekly_hours) * 60;
       localStorage.setItem('blitz_wochensoll', currentUser.weekly_hours);
       updateAdminUI(); updateSyncTab(); renderSyncPage();
-      // Push zuerst, damit lokale Einträge nicht verloren gehen, dann Pull
-      syncPush().then(() => syncPull()).then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
+      // syncNow: Pull zuerst (Server-Stand holen), dann Push (lokale Änderungen hochladen)
+      syncNow().then(() => { renderEntries(); renderSaldo(); populateAllSelects(); });
       setupRealtimeSync();
     } else {
       localStorage.removeItem('blitz_user_code'); localStorage.removeItem('blitz_user_id');
@@ -244,6 +245,11 @@ async function syncPush() {
   syncBusy = false;
   // Realtime bleibt pausiert bis syncPull in syncNow() fertig ist (oder 10s Failsafe)
   _realtimePauseUntil = Math.max(_realtimePauseUntil, Date.now() + 3000);
+  // Warteschlange abarbeiten (Realtime-Event kam während Push)
+  if (_syncQueued && !syncBusy) {
+    _syncQueued = false;
+    setTimeout(() => syncPull(), 500);
+  }
 }
 
 function scheduleSyncRetry() {
@@ -431,6 +437,11 @@ async function syncPull() {
     setSyncStatus('error', 'Download fehlgeschlagen: ' + e.message);
   }
   syncBusy = false;
+  // Warteschlange abarbeiten (Realtime-Event kam während Pull)
+  if (_syncQueued && !syncBusy) {
+    _syncQueued = false;
+    setTimeout(() => syncPull(), 500);
+  }
 }
 
 function entryContentHash(e) {
@@ -487,23 +498,47 @@ function resolveConflict(choice) {
 }
 
 async function syncNow() {
+  if (syncBusy) {
+    _syncQueued = true; // Nicht verwerfen, sondern nachholen
+    return;
+  }
   clearTimeout(syncPushTimer);
   _realtimePauseUntil = Date.now() + 15000; // Realtime für 15s pausieren (Push+Pull+Buffer)
-  await syncPush();
+  // WICHTIG: Pull ZUERST, damit wir den aktuellen Server-Stand haben
+  // bevor wir pushen. Verhindert dass Stammdaten (DELETE+INSERT)
+  // Änderungen vom anderen Gerät überschreiben.
   await syncPull();
-  // Nach Pull: Realtime noch 3s pausiert lassen (postgres_changes Latenz)
+  await syncPush();
+  // Nach Push: Realtime noch 3s pausiert lassen (postgres_changes Latenz)
   _realtimePauseUntil = Date.now() + 3000;
+  // Warteschlange abarbeiten (z.B. Realtime-Event während Sync)
+  if (_syncQueued) {
+    _syncQueued = false;
+    setTimeout(() => syncNow(), 500);
+  }
+}
+
+function _onRealtimeChange() {
+  // Eigene Push-Events ignorieren (verhindert Sync-Loop)
+  if (Date.now() <= _realtimePauseUntil) return;
+  if (syncBusy) {
+    // Nicht verwerfen! Nach Ende nachholen.
+    _syncQueued = true;
+    return;
+  }
+  syncPull();
 }
 
 function setupRealtimeSync() {
   const sb = getSupabase();
   if (!sb || !currentUser) return;
   if (_realtimeChannel) sb.removeChannel(_realtimeChannel);
-  _realtimeChannel = sb.channel('blitz-entries')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${currentUser.id}` }, () => {
-      // Eigene Push-Events ignorieren (verhindert Sync-Loop)
-      if (!syncBusy && Date.now() > _realtimePauseUntil) syncPull();
-    })
+  _realtimeChannel = sb.channel('blitz-sync')
+    // Entries, Kunden UND Standorte überwachen
+    // (verhindert dass Stammdaten-Änderungen vom anderen Gerät verloren gehen)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${currentUser.id}` }, _onRealtimeChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `user_id=eq.${currentUser.id}` }, _onRealtimeChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'locations', filter: `user_id=eq.${currentUser.id}` }, _onRealtimeChange)
     .subscribe((status, err) => {
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         console.warn('Realtime-Channel Fehler:', status, err);

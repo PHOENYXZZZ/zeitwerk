@@ -65,7 +65,7 @@ function save() {
   localStorage.setItem('blitz_v2', JSON.stringify(data));
   if (typeof currentUser !== 'undefined' && currentUser && !syncBusy && getAutoSyncEnabled()) {
     clearTimeout(syncPushTimer);
-    syncPushTimer = setTimeout(() => syncPush(), 5000);
+    syncPushTimer = setTimeout(() => syncNow(), 5000);
   }
 }
 
